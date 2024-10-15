@@ -1,70 +1,84 @@
 #include "./include/cab_buffer.h"
 
-cab_handle_t cab_buffer_t_init(size_t nSamples, size_t sampleSize) {
-    cab_handle_t buffer = (cab_handle_t)malloc(sizeof(cab_buffer_t));
-    if(buffer == NULL){
-        return NULL;
-    }
-    buffer->buffer = (uint8_t*)malloc(nSamples * sampleSize);
+//Before using init, you must create a cab_buffer_t pointer and use malloc
+//Ex: cab_buffer_t* cab_buffer = (cab_buffer_t*)malloc(sizeof(cab_buffer_t));
+//Only after you must use init
+void cab_buffer_t_init(cab_buffer_t* cab_buffer, uint8_t n_buffers, size_t buffer_size) {
+    cab_buffer->most_recent = 0;
 
-    buffer->buffSize = nSamples * sampleSize;
-    buffer->sampleSize = sampleSize;
-
-    buffer->head = buffer->buffer;
-    buffer->tail = buffer->buffer;
-}
-
-void cab_buffer_t_destroy(cab_handle_t buffer){
-    free(buffer->buffer);
-    free(buffer);
-}
-
-void cab_buffer_t_reset(cab_handle_t buffer){
-    buffer->head = buffer->buffer;
-    buffer->tail = buffer->buffer;
-    buffer->currentSize = 0;
-}
-
-uint8_t cab_buffer_t_write(cab_handle_t buffer, uint8_t* data){
-    pthread_mutex_lock(&buffer->mutex);
-    if(is_full(buffer)){
+    cab_buffer->buffer_array = (buffer*)malloc(n_buffers * sizeof(buffer));
+    if(cab_buffer->buffer_array == NULL)
+    {
         return NULL;
     }
 
-    memcpy(buffer->head, data, buffer->sampleSize);
-    buffer->currentSize++;
+    for(int i = 0; i < n_buffers; i++)
+    {
+        buffer* buffer = &cab_buffer->buffer_array[i];
+        buffer->ptr = (uint8_t*)malloc(buffer_size);
+        if(buffer->ptr == NULL)
+        {
+            return NULL;
+        }
+        buffer->size = buffer_size;
 
-    pthread_mutex_unlock(&buffer->mutex);
-
-    return buffer->head = advance_pointer(buffer, buffer->head);
+        buffer->current_ptr = buffer->ptr;
+        buffer->link_count = 0;
+    }
 }
 
-uint8_t* cab_buffer_t_read(cab_handle_t buffer){
-    pthread_mutex_lock(&buffer->mutex);
+void cab_buffer_t_destroy(cab_buffer_t* cab_buffer){
+    if (cab_buffer->buffer_array)
+    {
+        for(int i = 0; i < sizeof(cab_buffer->buffer_array)/sizeof(buffer); i++)
+        {
+            if(cab_buffer->buffer_array[i].ptr)
+            {
+                free(cab_buffer->buffer_array[i].ptr);
+            }
+        }
+        free(cab_buffer->buffer_array);
+    }
 
-    if(is_empty(buffer)){
+}
+
+void cab_buffer_t_reset(cab_handle_t ptr){
+    ptr->head = ptr->ptr;
+    ptr->tail = ptr->ptr;
+    ptr->currentSize = 0;
+}
+
+uint8_t cab_buffer_t_write(cab_buffer_t ptr){
+    pthread_mutex_lock(&ptr->mutex);
+
+    memcpy(ptr->head, data, ptr->sampleSize);
+    ptr->currentSize++;
+
+    pthread_mutex_unlock(&ptr->mutex);
+
+    return ptr->head = advance_pointer(ptr, ptr->head);
+}
+
+uint8_t* cab_buffer_t_read(cab_buffer_t ptr){
+    pthread_mutex_lock(&ptr->mutex);
+
+    if(is_empty(ptr)){
         return NULL;
     }
-    uint8_t* data = buffer->tail;
-    buffer->currentSize--;
-    buffer->tail=advance_pointer(buffer, buffer->tail);
+    uint8_t* data = ptr->tail;
+    ptr->currentSize--;
+    ptr->tail=advance_pointer(ptr, ptr->tail);
 
-    pthread_mutex_unlock(&buffer->mutex);
+    pthread_mutex_unlock(&ptr->mutex);
     return data;
 }
 
-uint8_t* advance_pointer(cab_handle_t buffer, uint8_t* ptr){
-    ptr += buffer->sampleSize;
-    if(ptr == buffer->buffer + buffer->buffSize){
-        ptr = buffer->buffer;
+uint8_t* advance_pointer(cab_handle_t ptr, uint8_t* ptr){
+    ptr += ptr->sampleSize;
+    if(ptr == ptr->ptr + ptr->buffSize){
+        ptr = ptr->ptr;
     }
     return ptr;
 }
 
-uint8_t is_empty(cab_handle_t buffer){
-    return buffer->currentSize == 0;
-}
 
-uint8_t is_full(cab_handle_t buffer){
-    return buffer->currentSize == buffer->buffSize;
-}
