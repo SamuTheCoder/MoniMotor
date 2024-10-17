@@ -39,46 +39,39 @@ void cab_buffer_t_destroy(cab_buffer_t* cab_buffer){
         }
         free(cab_buffer->buffer_array);
     }
-
+    free(cab_buffer);
 }
 
-void cab_buffer_t_reset(cab_handle_t ptr){
-    ptr->head = ptr->ptr;
-    ptr->tail = ptr->ptr;
-    ptr->currentSize = 0;
-}
+uint8_t cab_buffer_t_write(cab_buffer_t* ptr, uint8_t* stream){
+    // For writing, preprocessing task must look for the link_count of the buffer
+    // To check if the buffer is being used by other tasks
+    // And also never write on the current most recent buffer
 
-uint8_t cab_buffer_t_write(cab_buffer_t ptr){
-    pthread_mutex_lock(&ptr->mutex);
-
-    memcpy(ptr->head, data, ptr->sampleSize);
-    ptr->currentSize++;
-
-    pthread_mutex_unlock(&ptr->mutex);
-
-    return ptr->head = advance_pointer(ptr, ptr->head);
-}
-
-uint8_t* cab_buffer_t_read(cab_buffer_t ptr){
-    pthread_mutex_lock(&ptr->mutex);
-
-    if(is_empty(ptr)){
-        return NULL;
+    for(int i = 0; i <= sizeof(ptr->buffer_array)/sizeof(buffer); i++){
+        if(ptr->buffer_array[i].link_count == 0 && ptr->most_recent != i){
+            // Write to buffer
+            memcpy(ptr->buffer_array[i].ptr, stream, ptr->buffer_array[i].size);
+            ptr->most_recent = i;
+            return 1;
+        }
     }
-    uint8_t* data = ptr->tail;
-    ptr->currentSize--;
-    ptr->tail=advance_pointer(ptr, ptr->tail);
-
-    pthread_mutex_unlock(&ptr->mutex);
-    return data;
+    return 0;
 }
 
-uint8_t* advance_pointer(cab_handle_t ptr, uint8_t* ptr){
-    ptr += ptr->sampleSize;
-    if(ptr == ptr->ptr + ptr->buffSize){
-        ptr = ptr->ptr;
+uint8_t* cab_buffer_t_read(cab_buffer_t* ptr){
+    // For reading, tasks must look for the most recently written buffer
+    // Doesn't matter if the buffer is in use or not
+
+    for(int i = 0; i < sizeof(ptr->buffer_array)/sizeof(buffer); i++)
+    {
+        if(i == ptr->most_recent)
+        {
+            ptr->buffer_array[i].link_count++;
+            return ptr->buffer_array[i].ptr;
+        }
     }
-    return ptr;
+    return NULL;
 }
+
 
 
