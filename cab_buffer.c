@@ -26,6 +26,11 @@ void cab_buffer_t_init(cab_buffer_t* cab_buffer, uint8_t n_buffers, size_t buffe
         buf->size = buffer_size;
         buf->current_ptr = buf->ptr;
         buf->link_count = 0;
+
+        // Initialize the mutex for each buffer
+        if (pthread_mutex_init(&buf->mutex, NULL) != 0) {
+            fprintf(stderr, "Failed to initialize mutex for buffer %d\n", i);
+            return 1;
     }
 }
 
@@ -39,6 +44,7 @@ void cab_buffer_t_destroy(cab_buffer_t* cab_buffer){
             {
                 free(cab_buffer->buffer_array[i].ptr);
             }
+            pthread_mutex_destroy(&cab_buffer->buffer_array[i].mutex);
         }
         free(cab_buffer->buffer_array);
     }
@@ -71,7 +77,10 @@ uint8_t* cab_buffer_t_read(cab_buffer_t* cab_buffer){
 
     if (cab_buffer->most_recent >= 0 && cab_buffer->most_recent < cab_buffer->n_buffers) 
     {
+        LOCK(&cab_buffer->buffer_array[cab_buffer->most_recent].mutex);
         cab_buffer->buffer_array[cab_buffer->most_recent].link_count++; // Increase number of users
+        UNLOCK(&cab_buffer->buffer_array[cab_buffer->most_recent].mutex);
+        
         return cab_buffer->buffer_array[cab_buffer->most_recent].ptr;
     }
     return 1; // No buffer found

@@ -14,6 +14,9 @@
 #ifndef CAB_BUFFER_H
 #define CAB_BUFFER_H
 
+#define LOCK(mutex)      do if(pthread_mutex_lock(mutex) != 0) { fprintf(stderr,"pthread_mutex_lock() failed\n"); exit(1); } while(0)
+#define UNLOCK(mutex)    do if(pthread_mutex_unlock(mutex) != 0) { fprintf(stderr,"pthread_mutex_unlock() failed\n"); exit(1); } while(0)
+
 
 /**
  * @struct buffer
