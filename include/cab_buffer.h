@@ -30,6 +30,7 @@ typedef struct {
     pthread_mutex_t mutex; // Mutex to read and write the link_count safely  
 } buffer;
 
+
 /**
  * @struct cab_buffer_t
  * @brief Struct that represents a CAB buffer
@@ -49,13 +50,15 @@ typedef struct {
  * @param buffer_size Size of each buffer
  * @return 0 if the init was successful
  */
-void cab_buffer_t_init(cab_buffer_t* cab_buffer, uint8_t n_buffers, size_t buffer_size);
+uint8_t cab_buffer_t_init(cab_buffer_t* cab_buffer, uint8_t n_buffers, size_t buffer_size);
+
 
 /**
  * @brief Destroys a CAB buffer
  * @param cab_buffer Pointer to the CAB buffer
  */
-void cab_buffer_t_destroy(cab_buffer_t* cab_buff);
+uint8_t cab_buffer_t_destroy(cab_buffer_t* cab_buff);
+
 
 /**
  * @brief Reads from a CAB buffer
@@ -63,6 +66,7 @@ void cab_buffer_t_destroy(cab_buffer_t* cab_buff);
  * @return Pointer to the buffer read
  */
 uint8_t* cab_buffer_t_read(cab_buffer_t* cab_buff);
+
 
 /**
  * @brief Writes to a CAB buffer

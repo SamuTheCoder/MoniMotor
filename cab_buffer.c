@@ -3,7 +3,7 @@
 //Before using init, you must create a cab_buffer_t pointer and use malloc
 //Ex: cab_buffer_t* cab_buffer = (cab_buffer_t*)malloc(sizeof(cab_buffer_t));
 //Only after you must use init
-void cab_buffer_t_init(cab_buffer_t* cab_buffer, uint8_t n_buffers, size_t buffer_size) {
+uint8_t cab_buffer_t_init(cab_buffer_t* cab_buffer, uint8_t n_buffers, size_t buffer_size) {
     cab_buffer->most_recent = -1; // Every buffer is free to use
     cab_buffer->n_buffers = n_buffers;
 
@@ -36,7 +36,7 @@ void cab_buffer_t_init(cab_buffer_t* cab_buffer, uint8_t n_buffers, size_t buffe
 }
 
 
-void cab_buffer_t_destroy(cab_buffer_t* cab_buffer){
+uint8_t cab_buffer_t_destroy(cab_buffer_t* cab_buffer){
     if (cab_buffer->buffer_array)
     {
         for(int i = 0; i < sizeof(cab_buffer->buffer_array)/sizeof(buffer); i++) // sizeof(cab_buffer->buffer_array)/sizeof(buffer)
@@ -84,7 +84,7 @@ uint8_t* cab_buffer_t_read(cab_buffer_t* cab_buffer){
 
         return cab_buffer->buffer_array[cab_buffer->most_recent].ptr;
     }
-    return 1; // No buffer found
+    return NULL; // No buffer found
 }
 
 
@@ -100,7 +100,7 @@ uint8_t cab_buffer_t_print(cab_buffer_t* cab_buff, uint8_t buffer_number) {
     printf("Link count: %d\n", buf->link_count);
     printf("Data: ");
     for (size_t i = 0; i < buf->size; i++) {
-        printf("%02x ", buf->ptr[i]);
+        printf("%d ", buf->ptr[i]);
     }
     printf("\n");
 
