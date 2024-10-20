@@ -1,0 +1,2 @@
+https://ianfinlayson.net/class/cpsc425/notes/07-read-write - read/write mutex
+practical classes explanations 
