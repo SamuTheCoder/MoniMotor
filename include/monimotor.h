@@ -50,6 +50,34 @@ const int MAX_RECORDING_SECONDS = 5;
 //Maximum recording time plus padding
 const int RECORDING_BUFFER_SECONDS = MAX_RECORDING_SECONDS + 1;
 
+//Recording data buffer
+Uint8 * gRecordingBuffer = NULL;
+
+//Size of data buffer
+Uint32 gBufferByteSize = 0;
+
+//Position in data buffer
+Uint32 gBufferBytePosition = 0;
+
+//Maximum position in data buffer for recording
+Uint32 gBufferByteMaxPosition = 0;
+
+//Preprocessing task buffer
+Uint8 * gPreprocessingBuffer = NULL;
+
+//Size of preprocessing buffer
+Uint32 gPreprocessingBufferByteSize = 0;
+
+//Position in preprocessing buffer
+Uint32 gPreprocessingBufferBytePosition = 0;
+
+//Maximum position in preprocessing buffer for recording
+Uint32 gPreprocessingBufferByteMaxPosition = 0;
+
+//signal from callback to preprocessing task
+pthread_cond_t gPreprocessingSignal = PTHREAD_COND_INITIALIZER;
+
+
 //Receieved audio spec
 SDL_AudioSpec gReceivedRecordingSpec;
 
@@ -70,6 +98,9 @@ typedef struct
     pthread_t tid; // thread identifier
 } thread_issues_data_t;
 
+// Preprocessing thread code
+void *preprocessing_task_code(void *arg);
+
 // Speed thread code
 
 void* thread_speed_code(void *arg);
@@ -88,42 +119,21 @@ void* thread_issues_code(void *arg);
  * 
  * 		Simple realization derived from the discretization on an analog RC low-pass filter. See e.g. 
  * 			https://en.wikipedia.org/wiki/Low-pass_filter#Simple_infinite_impulse_response_filter 
- * ************************************************************ */ 
-void filterLP(uint32_t cof, uint32_t sampleFreq, uint8_t * buffer, uint32_t nSamples)
-{					
-	
-	int i;
-	
-	uint16_t * procBuffer; 	/* Temporary buffer */
-	uint16_t * origBuffer; 	/* Pointer to original buffer, with right sample type (UINT16 in the case) */
-	
-	float alfa, beta; 
-		
-	/* Compute alfa and beta multipliers */
-	alfa = (2 * M_PI / sampleFreq * cof ) / ( (2 * M_PI / sampleFreq * cof ) + 1 );
-	beta = 1-alfa;
-	
-	
-	/* Get pointer to buffer of the right type */
-	origBuffer = (uint16_t *)buffer;
-	
-	/* allocate temporary buffer and init it */
-	procBuffer = (uint16_t *)malloc(nSamples*sizeof(uint16_t));		
-	memset(procBuffer,0, nSamples*sizeof(uint16_t));
-	        
-	/* Apply the filter */		
-	for(i = 1; i < nSamples; i++) {				
-		procBuffer[i] = alfa * origBuffer[i] + beta * procBuffer[i-1];		
-	}
-	
-	/* Move data to the original (playback) buffer */
-	memcpy(buffer, (uint8_t *)procBuffer, nSamples*sizeof(uint16_t));	
-	
-	/* Release resources */
-	free(procBuffer);	
-	
-	return;
-}
+ * ************************************************************ */
+
+/* ************************************************************** 
+ * Callback issued by the capture device driver. 
+ * Args are:
+ * 		userdata: optional user data passed on AudioSpec struct
+ * 		stream: buffer of samples acquired 
+ * 		len: length of buffer ***in bytes*** (not # of samples) 
+ * 
+ * Just copy the data to the application buffer and update index 
+ * **************************************************************/
+
+void audioRecordingCallback(void* userdata, Uint8* stream, int len );
+
+void filterLP(uint32_t cof, uint32_t sampleFreq, uint8_t * buffer, uint32_t nSamples);
 
 /* *************************************************************************************
  * Audio processing example:
@@ -131,23 +141,13 @@ void filterLP(uint32_t cof, uint32_t sampleFreq, uint8_t * buffer, uint32_t nSam
  *      Frequency in Hz, durationMS in miliseconds, amplitude 0...0xFFFF, stream buffer 
  * 
  * *************************************************************************************/ 
-void genSineU16(uint16_t freq, uint32_t durationMS, uint16_t amp, uint8_t *buffer)
-{	
-	int i=0, nSamples=0;
-		
-	float sinArgK = 2*M_PI*freq;				/* Compute once constant part of sin argument, for efficiency */
-	
-	uint16_t * bufU16 = (uint16_t *)buffer; 	/* UINT16 pointer to buffer for access sample by sample */
-	
-	nSamples = ((float)durationMS / 1000) * SAMP_FREQ; 	/* Compute how many samples to generate */
-			
-	/* Generate sine wave */
-	for(i = 0; i < nSamples; i++) {
-		bufU16[i] = amp/2*(1+sin((sinArgK*i)/SAMP_FREQ));		
-	}		
-	
-	return;
-}
+void genSineU16(uint16_t freq, uint32_t durationMS, uint16_t amp, uint8_t *buffer);
+
+/**
+ * Function to initiate real time threads
+ */
+void start_tasks();
+
 
 /* *************************************************************************************
  * Debug function 

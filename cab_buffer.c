@@ -4,6 +4,11 @@
 //Ex: cab_buffer_t* cab_buffer = (cab_buffer_t*)malloc(sizeof(cab_buffer_t));
 //Only after you must use init
 uint8_t cab_buffer_t_init(cab_buffer_t* cab_buffer, uint8_t n_buffers, size_t buffer_size) {
+    if(cab_buffer == NULL)
+    {
+        fprintf(stderr, "cab_buffer is NULL\n");
+        return 1;
+    }
     cab_buffer->most_recent = -1; // Every buffer is free to use
     cab_buffer->n_buffers = n_buffers;
 
