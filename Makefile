@@ -25,7 +25,8 @@ clean:
 
 run: $(TARGET)
 	clear
-	./$(TARGET) 1
+	./$(TARGET) 0 
+#               1
 
 # Some notes
 # $@ represents the left side of the ":"

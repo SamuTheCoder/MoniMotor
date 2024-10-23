@@ -38,13 +38,15 @@ uint8_t cab_buffer_t_init(cab_buffer_t* cab_buffer, uint8_t n_buffers, size_t bu
             return 1;
         }
     }
+
+    return 0;
 }
 
 
 uint8_t cab_buffer_t_destroy(cab_buffer_t* cab_buffer){
     if (cab_buffer->buffer_array)
     {
-        for(int i = 0; i < sizeof(cab_buffer->buffer_array)/sizeof(buffer); i++) // sizeof(cab_buffer->buffer_array)/sizeof(buffer)
+        for(int i = 0; i < cab_buffer->n_buffers; i++) // sizeof(cab_buffer->buffer_array)/sizeof(buffer)
         {
             if(cab_buffer->buffer_array[i].ptr)
             {
@@ -90,6 +92,27 @@ uint8_t* cab_buffer_t_read(cab_buffer_t* cab_buffer){
         return cab_buffer->buffer_array[cab_buffer->most_recent].ptr;
     }
     return NULL; // No buffer found
+}
+
+
+uint8_t cab_buffer_t_release(cab_buffer_t* cab_buffer, uint8_t* buffer_ptr) {
+    for (int i = 0; i < cab_buffer->n_buffers; i++) {
+        buffer* buf = &cab_buffer->buffer_array[i];
+        if (buf->ptr == buffer_ptr) {  
+            LOCK(&buf->mutex);  // Lock the buffer to modify link_count safely
+            if (buf->link_count > 0) {
+                buf->link_count--;  // Decrease the link count
+            } else {
+                fprintf(stderr, "Buffer link_count is already 0, nothing to release\n");
+                UNLOCK(&buf->mutex);
+                return 1;  // Error: trying to release a buffer that's not in use
+            }
+            UNLOCK(&buf->mutex);
+            return 0;  // Successfully released
+        }
+    }
+    fprintf(stderr, "Invalid buffer pointer passed to release function\n");
+    return 1;  // Error: buffer pointer not found in cab_buffer
 }
 
 

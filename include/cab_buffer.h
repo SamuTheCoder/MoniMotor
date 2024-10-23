@@ -78,6 +78,15 @@ uint8_t cab_buffer_t_write(cab_buffer_t* cab_buff, uint8_t* stream);
 
 
 /**
+ * @brief Releases a buffer by decrementing the link_count
+ * @param cab_buffer Pointer to the CAB buffer
+ * @param buffer_ptr Pointer to the specific buffer being released
+ * @return 0 if the release was successful, 1 otherwise
+ */
+uint8_t cab_buffer_t_release(cab_buffer_t* cab_buff, uint8_t* buffer_ptr);
+
+
+/**
  * @brief Prints a buffer from CAB buffer
  * @param cab_buffer Pointer to the CAB buffer
  * @param buffer_number Number of buffer from the CAB buffer array to print 
