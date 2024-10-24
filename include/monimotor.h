@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <math.h>
+#include <complex.h>
 
 
 /* ***********************************************
@@ -77,6 +78,12 @@ Uint32 gPreprocessingBufferByteMaxPosition = 0;
 //signal from callback to preprocessing task
 pthread_cond_t gPreprocessingSignal = PTHREAD_COND_INITIALIZER;
 
+/************************************* 
+ * Buffers for issues and speed tasks
+ *************************************/
+
+complex double * gSpeedBuffer = NULL;
+complex double * gIssuesBuffer = NULL;
 
 //Receieved audio spec
 SDL_AudioSpec gReceivedRecordingSpec;
@@ -103,11 +110,11 @@ void *preprocessing_task_code(void *arg);
 
 // Speed thread code
 
-void* thread_speed_code(void *arg);
+void* speed_task_code(void *arg);
 
 // Issues thread code
 
-void* thread_issues_code(void *arg);
+void* issues_task_code(void *arg);
 
 
 // Aux functions

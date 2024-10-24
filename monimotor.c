@@ -78,6 +78,41 @@ void* preprocessing_task_code(void* arg){
 	//Write filtered data to cab_buffer
 }
 
+void* speed_task_code(void* arg){
+	cab_buffer_t *cab_buffer = (cab_buffer_t*)arg;
+	//Convert data to complex numbers
+	//For each sample on cab
+	//convert to complex and store on gSpeedBuffer
+	uint8_t* aux_buffer = cab_buffer_t_read(cab_buffer);
+	for(int i = 0; i < sizeof(aux_buffer); i++){
+		gSpeedBuffer[i] = (complex double)aux_buffer[i];
+	}
+
+	//Convert from time domain to frequency domain (FFT)
+	fftCompute(gSpeedBuffer, sizeof(gSpeedBuffer)/sizeof(complex double));
+
+	//Check what frequency has the most amplitude
+	
+
+	//Check if the frequency is in the range of the motor
+
+	//Return speed of the motor
+}
+
+void* issues_task_code(void* arg){
+	cab_buffer_t *cab_buffer = (cab_buffer_t*)arg;
+
+	//Apply FFT (Convert firstly to complex numbers)
+
+	//Check frequencies below 200hz
+
+	//Compare amplitude of those frequencies with the amplitude of the frequency of the motor
+
+	//If the amplitude of low frequencies is at least 20% of the amplitude of the motor frequency, issue command to the motor
+
+	//Issue command to the motor
+}
+
 void start_tasks()
 {
 	// For thread with RT attributes
@@ -230,6 +265,10 @@ int main(int argc, char *argv[]){
 	printf("bytesPerSample=%d, bytesPerSecond=%d, buffer byte size=%d (allocated) buffer byte size=%d (for nominal recording)", \
 			bytesPerSample, bytesPerSecond,gBufferByteSize, gBufferByteMaxPosition);
 	printf("\n\r *********** \n\r");
+
+	/** Start buffers for processing tasks */
+	gSpeedBuffer = (complex double *)malloc(gBufferByteSize*8);
+	gIssuesBuffer = (complex double *)malloc(gBufferByteSize*8);
 
 	start_tasks();
 
