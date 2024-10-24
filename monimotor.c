@@ -91,26 +91,54 @@ void* speed_task_code(void* arg){
 	//Convert from time domain to frequency domain (FFT)
 	fftCompute(gSpeedBuffer, sizeof(gSpeedBuffer)/sizeof(complex double));
 
+	//create fk and Ak buffers
+	float fk[sizeof(gSpeedBuffer)/sizeof(complex double)];
+	float Ak[sizeof(gSpeedBuffer)/sizeof(complex double)];
 	//Check what frequency has the most amplitude
-	
+	fftGetAmplitude(gSpeedBuffer, sizeof(gSpeedBuffer)/sizeof(complex double), SAMP_FREQ, fk, Ak);
 
-	//Check if the frequency is in the range of the motor
+	//Check for highest value of Ak
+	//Must be frequencies between 2kHz and 5kHz
+	float max_amplitude = Ak[0];
+	float equivalent_frequency = fk[0];
+	for(int i = 1; i < sizeof(Ak)/sizeof(float); i++){
+		if(Ak[i] > max_amplitude && fk[i] > 2000 && fk[i] < 5000){
+			max_amplitude = Ak[i];
+			equivalent_frequency = fk[i];
+		}
+	}
 
-	//Return speed of the motor
+	//Return values to RTDB
+	gRTDB->motor_speed = equivalent_frequency;
+	gRTDB->highest_amplitude = max_amplitude;
 }
 
 void* issues_task_code(void* arg){
 	cab_buffer_t *cab_buffer = (cab_buffer_t*)arg;
 
 	//Apply FFT (Convert firstly to complex numbers)
+	uint8_t* aux_buffer = cab_buffer_t_read(cab_buffer);
+	for(int i = 0; i < sizeof(aux_buffer); i++){
+		gIssuesBuffer[i] = (complex double)aux_buffer[i];
+	}
+
+	fftCompute(gIssuesBuffer, sizeof(gIssuesBuffer)/sizeof(complex double));
 
 	//Check frequencies below 200hz
+	//create fk and Ak buffers
+	float fk[sizeof(gSpeedBuffer)/sizeof(complex double)];
+	float Ak[sizeof(gSpeedBuffer)/sizeof(complex double)];
+	//Check what frequency has the most amplitude
+	fftGetAmplitude(gSpeedBuffer, sizeof(gSpeedBuffer)/sizeof(complex double), SAMP_FREQ, fk, Ak);
 
-	//Compare amplitude of those frequencies with the amplitude of the frequency of the motor
-
-	//If the amplitude of low frequencies is at least 20% of the amplitude of the motor frequency, issue command to the motor
-
-	//Issue command to the motor
+	for(int i = 0; i < sizeof(Ak)/sizeof(float); i++){
+		if(fk[i] < 200){
+			if(Ak[i] > 0.2*gRTDB->highest_amplitude){
+				gRTDB->has_bearing_issues = 1;
+				return;
+			}
+		}
+	}
 }
 
 void start_tasks()
@@ -158,7 +186,8 @@ void start_tasks()
 
 int main(int argc, char *argv[]){
 
-	cab_buffer_t *cab_buffer = (cab_buffer_t*)malloc(sizeof(cab_buffer_t));
+	cab_buffer = (cab_buffer_t*)malloc(sizeof(cab_buffer_t));
+	gRTDB = (rt_db_t*)malloc(sizeof(rt_db_t));
 
 	/* ****************
 	 *  Variables 

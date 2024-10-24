@@ -21,6 +21,7 @@
 #include <sys/mman.h>
 #include <math.h>
 #include <complex.h>
+#include <rt_db.h>
 
 
 /* ***********************************************
@@ -77,6 +78,12 @@ Uint32 gPreprocessingBufferByteMaxPosition = 0;
 
 //signal from callback to preprocessing task
 pthread_cond_t gPreprocessingSignal = PTHREAD_COND_INITIALIZER;
+
+//CAB buffer
+cab_buffer_t *cab_buffer;
+
+// Real Time Database
+rt_db_t* gRTDB;
 
 /************************************* 
  * Buffers for issues and speed tasks
