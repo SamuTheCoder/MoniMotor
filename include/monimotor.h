@@ -23,6 +23,9 @@
 #include <complex.h>
 #include <rt_db.h>
 
+#define LOCK_P(mutex)      do if(pthread_mutex_lock(mutex) != 0) { fprintf(stderr,"pthread_mutex_lock() failed\n"); exit(1); } while(0)
+#define UNLOCK_P(mutex)    do if(pthread_mutex_unlock(mutex) != 0) { fprintf(stderr,"pthread_mutex_unlock() failed\n"); exit(1); } while(0)
+#define SIGNAL_P(cond)  do if(pthread_cond_broadcast(cond)    != 0) { fprintf(stderr,"pthread_cond_broadcast() failed --- producer\n"); exit(1); } while(0)
 
 /* ***********************************************
 * App specific defines
@@ -52,8 +55,17 @@ const int MAX_RECORDING_SECONDS = 5;
 //Maximum recording time plus padding
 const int RECORDING_BUFFER_SECONDS = MAX_RECORDING_SECONDS + 1;
 
-//Recording data buffer
-Uint8 * gRecordingBuffer = NULL;
+//Recording data buffer (device driver)
+Uint8 * gRecordingBuffer1 = NULL;
+
+//Preprocessing data buffer
+Uint8 * gRecordingBuffer2 = NULL;
+
+//Shared variable for choosing which buffer to use
+Uint8 * choose_buffer = NULL;
+
+//Mutex for choosing buffer
+pthread_mutex_t choose_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //Size of data buffer
 Uint32 gBufferByteSize = 0;

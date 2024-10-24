@@ -3,16 +3,21 @@
 
 void audioRecordingCallback(void* userdata, Uint8* stream, int len )
 {	
-	
-	
 	/* Copy bytes acquired from audio stream */
-	memcpy(&gRecordingBuffer[ gBufferBytePosition ], stream, len);
-	
-	/* Update buffer pointer */
-	gBufferBytePosition += len;
+	memcpy(choose_buffer, stream, len);
 
+	LOCK(&choose_buffer_mutex);
+	if(choose_buffer == gRecordingBuffer1)
+	{
+		choose_buffer = gRecordingBuffer2;
+	}
+	else
+	{
+		choose_buffer = gRecordingBuffer1;
+	}
 	//Signal the preprocessing task that there is data to be processed
 	pthread_cond_signal(&gPreprocessingSignal);
+	UNLOCK(&choose_buffer_mutex);
 }
 
 void filterLP(uint32_t cof, uint32_t sampleFreq, uint8_t * buffer, uint32_t nSamples)
@@ -71,11 +76,14 @@ void genSineU16(uint16_t freq, uint32_t durationMS, uint16_t amp, uint8_t *buffe
 
 void* preprocessing_task_code(void* arg){
 	//Wait for signal from audioRecordingCallback
-	pthread_cond_wait(&gPreprocessingSignal, );
+	LOCK(&choose_buffer_mutex);
+	pthread_cond_wait(&gPreprocessingSignal, &choose_buffer_mutex);
 
-	//Get gRecordingBuffer and filter it
+	//Appply LP filter and store on CAB buffer
+	filterLP(1000, SAMP_FREQ, choose_buffer, gBufferByteMaxPosition/sizeof(uint16_t));
+	cab_buffer_t_write(cab_buffer, choose_buffer);
 
-	//Write filtered data to cab_buffer
+	UNLOCK(&choose_buffer_mutex);
 }
 
 void* speed_task_code(void* arg){
@@ -92,8 +100,8 @@ void* speed_task_code(void* arg){
 	fftCompute(gSpeedBuffer, sizeof(gSpeedBuffer)/sizeof(complex double));
 
 	//create fk and Ak buffers
-	float fk[sizeof(gSpeedBuffer)/sizeof(complex double)];
-	float Ak[sizeof(gSpeedBuffer)/sizeof(complex double)];
+	float* fk = (float*)malloc(sizeof(gSpeedBuffer)/sizeof(complex double));
+	float* Ak = (float*)malloc(sizeof(gSpeedBuffer)/sizeof(complex double));
 	//Check what frequency has the most amplitude
 	fftGetAmplitude(gSpeedBuffer, sizeof(gSpeedBuffer)/sizeof(complex double), SAMP_FREQ, fk, Ak);
 
@@ -111,6 +119,9 @@ void* speed_task_code(void* arg){
 	//Return values to RTDB
 	gRTDB->motor_speed = equivalent_frequency;
 	gRTDB->highest_amplitude = max_amplitude;
+
+	free(fk);
+	free(Ak);
 }
 
 void* issues_task_code(void* arg){
@@ -126,8 +137,8 @@ void* issues_task_code(void* arg){
 
 	//Check frequencies below 200hz
 	//create fk and Ak buffers
-	float fk[sizeof(gSpeedBuffer)/sizeof(complex double)];
-	float Ak[sizeof(gSpeedBuffer)/sizeof(complex double)];
+	float* fk = (float*)malloc(sizeof(gSpeedBuffer)/sizeof(complex double));
+	float* Ak = (float*)malloc(sizeof(gSpeedBuffer)/sizeof(complex double));
 	//Check what frequency has the most amplitude
 	fftGetAmplitude(gSpeedBuffer, sizeof(gSpeedBuffer)/sizeof(complex double), SAMP_FREQ, fk, Ak);
 
@@ -139,55 +150,18 @@ void* issues_task_code(void* arg){
 			}
 		}
 	}
-}
 
-void start_tasks()
-{
-	// For thread with RT attributes
-	pthread_t threadid;
-	struct sched_param parm; 
-	pthread_attr_t attr;
-	cpu_set_t cpuset_test; // To check process affinity
-	
-	// For RT scheduler
-	int policy, prio=DEFAULT_PRIO;
-
-	int priority = 99;
-	//In ms
-	int periodicity = 50;
-
-	if(priority < 1 || priority > 99){
-		printf("Priority must be between 1 and 99");
-		return -1;
-	}
-	if(periodicity < 50 || periodicity > 500){
-		printf("Periodicity must be between 50 and 500 ms");
-		return -1;
-	}
-					 
-	/* Create periodic thread/task with RT scheduling attributes*/
-	pthread_attr_init(&attr);
-	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-	parm.sched_priority = priority;
-	pthread_attr_setschedparam(&attr, &parm);
-	
-	/* Lock memory */
-	mlockall(MCL_CURRENT | MCL_FUTURE);
-
-
-
-	printf("reached here");
-	
-	int err=pthread_create(&threadid, &attr, preprocessing_task_code, NULL);
-	if(err != 0)
-		printf("\n\r Error creating Thread [%s]", strerror(err));
+	free(fk);
+	free(Ak);
 }
 
 int main(int argc, char *argv[]){
 
 	cab_buffer = (cab_buffer_t*)malloc(sizeof(cab_buffer_t));
 	gRTDB = (rt_db_t*)malloc(sizeof(rt_db_t));
+	gRTDB->has_bearing_issues = 0;
+	gRTDB->highest_amplitude = 0;
+	gRTDB->motor_speed = 0;
 
 	/* ****************
 	 *  Variables 
@@ -282,9 +256,15 @@ int main(int argc, char *argv[]){
 	/* leeway is not added */ 
 	gBufferByteMaxPosition = gPreprocessingBufferByteMaxPosition= MAX_RECORDING_SECONDS * bytesPerSecond;
 
-	/* Allocate and initialize record buffer */
-	gRecordingBuffer = (uint8_t *)malloc(gBufferByteSize);
-	memset(gRecordingBuffer, 0, gBufferByteSize);
+	/* Allocate and initialize recording buffers */
+	gRecordingBuffer1 = (uint8_t *)malloc(gBufferByteSize);
+	memset(gRecordingBuffer1, 0, gBufferByteSize);
+
+	gRecordingBuffer2 = (uint8_t *)malloc(gBufferByteSize);
+	memset(gRecordingBuffer2, 0, gBufferByteSize);
+
+	/* Start choose_buffer*/
+	choose_buffer = gRecordingBuffer1;
 	
 	/* Allocate and initialize preprocessing buffer */
 	gPreprocessingBuffer = (uint8_t *)malloc(gPreprocessingBufferByteSize);
@@ -298,8 +278,6 @@ int main(int argc, char *argv[]){
 	/** Start buffers for processing tasks */
 	gSpeedBuffer = (complex double *)malloc(gBufferByteSize*8);
 	gIssuesBuffer = (complex double *)malloc(gBufferByteSize*8);
-
-	start_tasks();
 
 #define RECORD
 #ifdef RECORD
@@ -345,6 +323,6 @@ int main(int argc, char *argv[]){
 #define GENSINE
 #ifdef GENSINE
 	printf("\n Generating a sine wave \n");
-	genSineU16(1000, 1000, 30000, gRecordingBuffer); 	/* freq, durationMS, amp, buffer */
+	genSineU16(1000, 1000, 30000, gRecordingBuffer1); 	/* freq, durationMS, amp, buffer */
 #endif
 }

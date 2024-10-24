@@ -12,9 +12,9 @@
 #define RT_DB_H
 
 typedef struct {
-    uint32_t motor_speed = 0;
-    double highest_amplitude = 0;
-    uint8_t has_bearing_issues = 0;
+    uint32_t motor_speed;
+    double highest_amplitude;
+    uint8_t has_bearing_issues;
 } rt_db_t;
 
 #endif

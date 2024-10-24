@@ -47,7 +47,7 @@ SDL_AudioSpec gReceivedRecordingSpec;
 SDL_AudioSpec gReceivedPlaybackSpec;
 
 //Recording data buffer
-Uint8 * gRecordingBuffer = NULL;
+Uint8 * gRecordingBuffer1 = NULL;
 
 //Size of data buffer
 Uint32 gBufferByteSize = 0;
@@ -74,7 +74,7 @@ char y;
 void audioRecordingCallback(void* userdata, Uint8* stream, int len )
 {
 	/* Copy bytes acquired from audio stream */
-	memcpy(&gRecordingBuffer[ gBufferBytePosition ], stream, len);
+	memcpy(&gRecordingBuffer1[ gBufferBytePosition ], stream, len);
 
 	/* Update buffer pointer */
 	gBufferBytePosition += len;
@@ -92,7 +92,7 @@ void audioRecordingCallback(void* userdata, Uint8* stream, int len )
 void audioPlaybackCallback(void* userdata, Uint8* stream, int len )
 {
 	/* Copy buffer with audio samples to stream for playback */
-	memcpy(stream, &gRecordingBuffer[ gBufferBytePosition ], len);
+	memcpy(stream, &gRecordingBuffer1[ gBufferBytePosition ], len);
 
 	/* Update buffer index */
 	gBufferBytePosition += len;
@@ -391,8 +391,8 @@ int main(int argc, char ** argv)
 	gBufferByteMaxPosition = MAX_RECORDING_SECONDS * bytesPerSecond;
 
 	/* Allocate and initialize record buffer */
-	gRecordingBuffer = (uint8_t *)malloc(gBufferByteSize);
-	memset(gRecordingBuffer, 0, gBufferByteSize);
+	gRecordingBuffer1 = (uint8_t *)malloc(gBufferByteSize);
+	memset(gRecordingBuffer1, 0, gBufferByteSize);
 	
 	printf("\n\r *********** \n\r");
 	printf("bytesPerSample=%d, bytesPerSecond=%d, buffer byte size=%d (allocated) buffer byte size=%d (for nominal recording)", \
@@ -443,7 +443,7 @@ int main(int argc, char ** argv)
 #define GENSINE
 #ifdef GENSINE
 	printf("\n Generating a sine wave \n");
-	genSineU16(1000, 1000, 30000, gRecordingBuffer); 	/* freq, durationMS, amp, buffer */
+	genSineU16(1000, 1000, 30000, gRecordingBuffer1); 	/* freq, durationMS, amp, buffer */
 #endif
 
 //#define ADDECHO
@@ -460,7 +460,7 @@ int main(int argc, char ** argv)
 	/* Getting max-min can be usefull to detect possible saturation 		*/
 	{
 		uint32_t max, min;
-		getMaxMinU16(gRecordingBuffer,gBufferByteMaxPosition/sizeof(uint16_t), &max, &min);
+		getMaxMinU16(gRecordingBuffer1,gBufferByteMaxPosition/sizeof(uint16_t), &max, &min);
 		printf("Maxa mplitude: = %u Min amplitude is:%u\n",max, min);
 	}
 
@@ -479,7 +479,7 @@ int main(int argc, char ** argv)
 	/* Apply LP filter */
 	/* Args are cutoff freq, sampling freq, buffer and # of samples in the buffer */
 	printf("\n Applying LP filter \n");
-	filterLP(1000, SAMP_FREQ, gRecordingBuffer, gBufferByteMaxPosition/sizeof(uint16_t)); 
+	filterLP(1000, SAMP_FREQ, gRecordingBuffer1, gBufferByteMaxPosition/sizeof(uint16_t)); 
 #endif
 
 #define FFT
@@ -488,7 +488,7 @@ int main(int argc, char ** argv)
 		int N=0;	// Number of samples to take
 		int sampleDurationMS = 100; /* Duration of the sample to analyze, in ms */
 		int k=0; 	// General counter
-		uint16_t * sampleVector = (uint16_t *)gRecordingBuffer; // Vector of samples 
+		uint16_t * sampleVector = (uint16_t *)gRecordingBuffer1; // Vector of samples 
 		float * fk; /* Pointer to array with frequencies */
 		float * Ak; /* Pointer to array with amplitude for frequency fk[i] */
 		complex double * x; /* Pointer to array of complex values for samples and FFT */
@@ -561,10 +561,10 @@ int main(int argc, char ** argv)
 	/* *******************************************
 	 * All done! Release resources and terminate
 	 * *******************************************/
-	if( gRecordingBuffer != NULL )
+	if( gRecordingBuffer1 != NULL )
 	{
-		free(gRecordingBuffer);
-		gRecordingBuffer = NULL;
+		free(gRecordingBuffer1);
+		gRecordingBuffer1 = NULL;
 	}
 
 	SDL_Quit();
