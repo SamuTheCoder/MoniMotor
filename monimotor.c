@@ -21,20 +21,19 @@ void audioRecordingCallback(void* userdata, Uint8* stream, int len )
 	/* Copy bytes acquired from audio stream */
 	if(choose_buffer == gRecordingBuffer1)
 	{
-		printf("Buffer 1\n");
+		printf("Callback Buffer 1\n");
 		memcpy(&choose_buffer[gBufferBytePosition], stream, len);
-		printf("Done\n");	
 		gBufferBytePosition += len;
 	}
 	else
 	{
-		printf("Buffer 2\n");
+		printf("Callback Buffer 2\n");
 		memcpy(&choose_buffer[gBufferBytePosition2], stream, len);
 		gBufferBytePosition2 += len;
 	}
 
 	LOCK(&choose_buffer_mutex);
-	printf("Signaling\n");
+	printf("Callback: Signaling\n");
 	if(choose_buffer == gRecordingBuffer1)
 	{
 		choose_buffer = gRecordingBuffer2;
@@ -157,15 +156,22 @@ void* preprocessing_task_code(void* arg){
 		  update = 0;
 		}
 		//Wait for signal from audioRecordingCallback
-		printf("Waiting for signal\n");
+		printf("Task: Waiting for signal\n");
 		LOCK(&choose_buffer_mutex);
 		pthread_cond_wait(&gPreprocessingSignal, &choose_buffer_mutex);
 
 		//Appply LP filter and store on CAB buffer
-		filterLP(1000, SAMP_FREQ, choose_buffer, gBufferByteMaxPosition/sizeof(uint16_t));
-		printf("Filter applied\n");
-		cab_buffer_t_write(cab_buffer, choose_buffer);
-		printf("Written to CAB\n");
+		//if choose_buffer is 1, write to 2, if its 2 write to 1
+		if(choose_buffer == gRecordingBuffer1){
+			filterLP(1000, SAMP_FREQ, gRecordingBuffer2, gBufferByteMaxPosition/sizeof(uint16_t));
+			cab_buffer_t_write(cab_buffer, gRecordingBuffer2);
+			printf("Task: Written to CAB Buff 2\n");
+		}
+		else{
+			filterLP(1000, SAMP_FREQ, gRecordingBuffer1, gBufferByteMaxPosition/sizeof(uint16_t));
+			cab_buffer_t_write(cab_buffer, gRecordingBuffer1);
+			printf("Task: Written to CAB Buff 1\n");
+		}
 
 		UNLOCK(&choose_buffer_mutex);
 	}
@@ -251,7 +257,7 @@ void start_tasks(){
 	// For RT scheduler
 	int policy, prio=DEFAULT_PRIO;
 
-	int priority = 50;
+	int priority = 99;
 	int periodicity = 125;
 
 	pthread_attr_init(&attr);
@@ -420,13 +426,12 @@ int main(int argc, char *argv[]){
  
 #endif
 
-#define GENSINE
-#ifdef GENSINE
-	printf("\n Generating a sine wave \n");
-	genSineU16(1000, 1000, 30000, gRecordingBuffer1); 	/* freq, durationMS, amp, buffer */
-	genSineU16(1000, 1000, 30000, gRecordingBuffer2); 	/* freq, durationMS, amp, buffer */
+//#define GENSINE
+//#ifdef GENSINE
+//	printf("\n Generating a sine wave \n");
+//	genSineU16(1000, 1000, 30000, gRecordingBuffer1); 	/* freq, durationMS, amp, buffer */
 
-#endif
+//#endif
 	//Print contents on the most recent buffer of CAB
 	for(int i = 0; i < cab_buffer->buffer_array[cab_buffer->most_recent].size; i+=2){
 		uint16_t* sample = (uint16_t* )cab_buffer->buffer_array[cab_buffer->most_recent].ptr + i;
