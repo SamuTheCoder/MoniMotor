@@ -73,11 +73,11 @@ Uint32 gBufferByteSize = 0;
 //Position in data buffer
 Uint32 gBufferBytePosition = 0;
 
+//Position in data buffer 2
+Uint32 gBufferBytePosition2 = 0;
+
 //Maximum position in data buffer for recording
 Uint32 gBufferByteMaxPosition = 0;
-
-//Preprocessing task buffer
-Uint8 * gPreprocessingBuffer = NULL;
 
 //Size of preprocessing buffer
 Uint32 gPreprocessingBufferByteSize = 0;
@@ -96,6 +96,9 @@ cab_buffer_t *cab_buffer;
 
 // Real Time Database
 rt_db_t* gRTDB;
+
+uint64_t min_iat, max_iat; // Hold the minimum/maximum observed time between successive executions
+
 
 /************************************* 
  * Buffers for issues and speed tasks
@@ -241,3 +244,19 @@ struct  timespec  TsSub (struct  timespec  ts1, struct  timespec  ts2) {
 	return (tr) ;
 
 }
+
+/* ***********************************************
+ * Debug function: 
+ *       Prints the buffer contents - 8 bit samples * 
+ * **********************************************/
+void printSamplesU8(uint8_t * buffer, int size) {
+	int i=0;
+	
+	printf("\n\r Samples: \n\r");
+	for(i = 0; i < size; i++) {
+		printf("%3u ",buffer[i]);
+		if((i%20) == 0)
+			printf("\n\r");
+	}		
+}
+

@@ -7,28 +7,30 @@ LDFLAGS = $(shell $(SDL2_CONFIG) --libs)
 LDFLAGS += -lm  
 CFLAGS += -g
 
-TARGET = simpleRecPlay
-OBJECTS = simpleRecPlay.o ./fft/fft.o
+# Define the target and source files
+TARGET = monimotor
+SOURCES = monimotor.c ./fft/fft.c cab_buffer.c
+HEADERS = ./include
+OBJECTS = $(SOURCES:.c=.o)
 
-CC=gcc
+CC = gcc
 
+# Main target
 all: $(TARGET)
 
+# Linking target
 $(TARGET): $(OBJECTS) 
-	$(CC) -o $(TARGET) $(OBJECTS)  $(LDFLAGS) 
-	
-%.o:%.c
-	$(CC) $(CFLAGS) -c $< -o $@ 
+	$(CC) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
 
+# Compilation target
+%.o: %.c
+	$(CC) $(CFLAGS) -I $(HEADERS) -c $< -o $@
+
+# Clean up the build
 clean:
 	rm -f *.o $(TARGET) $(OBJECTS)
 
+# Run the program
 run: $(TARGET)
 	clear
 	./$(TARGET) 0 
-#               1
-
-# Some notes
-# $@ represents the left side of the ":"
-# $^ represents the right side of the ":"
-# $< represents the first item in the dependency list   
