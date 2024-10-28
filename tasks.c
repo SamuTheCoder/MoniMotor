@@ -143,7 +143,7 @@ void* speed_task_code(void* arg){
     float* fk = (float*)malloc(gBufferByteSize * sizeof(float));
     float* Ak = (float*)malloc(gBufferByteSize * sizeof(float));
 
-	uint8_t* aux_buffer;
+	uint16_t* aux_buffer;
 
 	while(1){
 		/* Wait until next cycle */
@@ -186,7 +186,7 @@ void* speed_task_code(void* arg){
         //Convert data to complex numbers
         //For each sample on cab
         //convert to complex and store on gSpeedBuffer
-        aux_buffer = cab_buffer_t_read(cab_buffer);
+        aux_buffer = (uint16_t *) cab_buffer_t_read(cab_buffer);
 		
         if(aux_buffer == NULL){
             printf("Speed Task: CAB buffer is still empty\n");
@@ -215,12 +215,12 @@ void* speed_task_code(void* arg){
 		}
 
 		
-        //Check for highest value of Ak
-        //Must be frequencies between 2kHz and 5kHz
-        float max_amplitude = Ak[0];
-        float equivalent_frequency = fk[0];
-        for(int i = 1; i < 4096; i++){
-            if(Ak[i] > max_amplitude && fk[i] > 2000 && fk[i] < 5000){
+        // Check for highest value of Ak
+        // Must be frequencies between 2kHz and 5kHz
+        float max_amplitude = 0;
+        float equivalent_frequency = 0;
+        for(int i = 0; i < 4096; i++) {
+            if(Ak[i] > max_amplitude && fk[i] >= 2000 && fk[i] <= 5000){
 				printf("Speed Task: Found a higher amplitude: %f\n", Ak[i]);
                 max_amplitude = Ak[i];
                 equivalent_frequency = fk[i];
