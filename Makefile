@@ -9,7 +9,7 @@ CFLAGS += -g
 
 # Define the target and source files
 TARGET = monimotor
-SOURCES = monimotor.c ./fft/fft.c cab_buffer.c
+SOURCES = monimotor.c ./fft/fft.c cab_buffer.c 
 HEADERS = ./include
 OBJECTS = $(SOURCES:.c=.o)
 

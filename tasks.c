@@ -65,9 +65,9 @@ void* preprocessing_task_code(void* arg){
 		//if choose_buffer is 1, write to 2, if its 2 write to 1
 		if(choose_buffer == gRecordingBuffer1){
 			filterLP(1000, SAMP_FREQ, gRecordingBuffer2, gBufferBytePosition2/sizeof(uint16_t));
-			printf("Preprocessing Task: gRecordingBuffer2 samples\n");
-			printSamplesU16(gRecordingBuffer2, gBufferBytePosition2/sizeof(uint16_t));
-			printf("\n");
+			//printf("Preprocessing Task: gRecordingBuffer2 samples\n");
+			//printSamplesU16(gRecordingBuffer2, gBufferBytePosition2/sizeof(uint16_t));
+			//printf("\n");
 			
 			if(cab_buffer_t_write(cab_buffer, gRecordingBuffer2)){
                 printf("Preprocessing Task: Couldn't write to CAB\n");
@@ -77,9 +77,9 @@ void* preprocessing_task_code(void* arg){
 		}
 		else{
 			filterLP(1000, SAMP_FREQ, gRecordingBuffer1, gBufferBytePosition/sizeof(uint16_t));
-			printf("Preprocessing Task: gRecordingBuffer1 samples\n");
-			printSamplesU16(gRecordingBuffer1, gBufferBytePosition/sizeof(uint16_t));
-			printf("\n");
+			//printf("Preprocessing Task: gRecordingBuffer1 samples\n");
+			//printSamplesU16(gRecordingBuffer1, gBufferBytePosition/sizeof(uint16_t));
+			//printf("\n");
 
 			if(cab_buffer_t_write(cab_buffer, gRecordingBuffer1)){
                 printf("Preprocessing Task: Couldn't write to CAB\n");
@@ -182,10 +182,10 @@ void* speed_task_code(void* arg){
 		  update = 0;
 		}
         cab_buffer_t *cab_buffer = (cab_buffer_t*)arg;
+
         //Convert data to complex numbers
         //For each sample on cab
         //convert to complex and store on gSpeedBuffer
-
         aux_buffer = cab_buffer_t_read(cab_buffer);
 		
         if(aux_buffer == NULL){
@@ -193,27 +193,34 @@ void* speed_task_code(void* arg){
             continue;
         }
 
-        for(int i = 0; i < sizeof(aux_buffer); i++){
-            gSpeedBuffer[i] = (complex double)aux_buffer[i];
+        for(int i = 0; i < 4096; i++){
+            gSpeedBuffer[i] = aux_buffer[i];
         }
 
 
         //Convert from time domain to frequency domain (FFT)
-        fftCompute(gSpeedBuffer, 8192);
-        //create fk and Ak buffers
-        //Check what frequency has the most amplitude
+        fftCompute(gSpeedBuffer, 4096);
         
+        //Check what frequency has the most amplitude
 		if(gSpeedBuffer == NULL)
             printf("Speed Task: Speed buff is null\n");
         
-        fftGetAmplitude(gSpeedBuffer, gBufferByteSize, SAMP_FREQ, fk, Ak);
+        fftGetAmplitude(gSpeedBuffer, 4096, SAMP_FREQ, fk, Ak);
 
+		//for (int i = 0; i < gBufferByteSize * sizeof(float); ++i * sizeof(float)) {
+        //	printf("Ak[%d] = %f\n", i, Ak[i]);
+
+		for(int i = 0; i<=4096/2; i++) {
+			printf("Amplitude at frequency %f Hz is %f \n", fk[i], Ak[i]);
+		}
+
+		
         //Check for highest value of Ak
         //Must be frequencies between 2kHz and 5kHz
         float max_amplitude = Ak[0];
         float equivalent_frequency = fk[0];
-        for(int i = 1; i < sizeof(Ak)/sizeof(float); i+=2){
-            if(Ak[i] > max_amplitude && fk[i] > 0 && fk[i] < 5000){
+        for(int i = 1; i < 4096; i++){
+            if(Ak[i] > max_amplitude && fk[i] > 2000 && fk[i] < 5000){
 				printf("Speed Task: Found a higher amplitude: %f\n", Ak[i]);
                 max_amplitude = Ak[i];
                 equivalent_frequency = fk[i];
@@ -225,7 +232,8 @@ void* speed_task_code(void* arg){
         gRTDB->highest_amplitude = max_amplitude;
 
         printf("Speed Task: motor speed: %d, highest amplitude: %f\n", gRTDB->motor_speed, gRTDB->highest_amplitude);
-    }
+		
+	}
     free(fk);
     free(Ak);
 }
