@@ -50,7 +50,14 @@ void fftCompute(complex double *X, int N) {
 void fftGetAmplitude(complex double * X, int N, int fs, float * fk, float * Ak) {
     
     int k=0;
-    
+    printf("N=%d\n",N);
+    printf("fs=%d\n",fs);
+    if(X == NULL) 
+        printf("fftGetAmplitude: X is NULL\n");
+    if(fk == NULL)
+        printf("fftGetAmplitude: fk is NULL\n");
+    if(Ak == NULL)
+        printf("fftGetAmplitude: Ak is NULL\n");
     /* Compute freqs: from 0/DC to fs, obver the N bins */
     /* Output vector is mirrored, so only the first N/2 bins are relevant */
     for(k=0; k<=N/2; k++) {

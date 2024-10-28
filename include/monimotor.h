@@ -79,6 +79,8 @@ Uint32 gBufferBytePosition2 = 0;
 //Maximum position in data buffer for recording
 Uint32 gBufferByteMaxPosition = 0;
 
+Uint32 gBufferByteMaxPosition2 = 0;
+
 //Size of preprocessing buffer
 Uint32 gPreprocessingBufferByteSize = 0;
 
@@ -98,7 +100,7 @@ cab_buffer_t *cab_buffer;
 rt_db_t* gRTDB;
 
 uint64_t min_iat, max_iat; // Hold the minimum/maximum observed time between successive executions
-
+uint64_t min_iat_speed, max_iat_speed; // Hold the minimum/maximum observed time between successive executions
 
 /************************************* 
  * Buffers for issues and speed tasks
@@ -141,15 +143,6 @@ void* issues_task_code(void *arg);
 
 // Aux functions
 
-/* **************************************************************
- * Audio processing example:
- *  	Applies a low-pass filter
- * 		Args are cutoff frequency, buffer and nsamples in buffer
- * 
- * 		Simple realization derived from the discretization on an analog RC low-pass filter. See e.g. 
- * 			https://en.wikipedia.org/wiki/Low-pass_filter#Simple_infinite_impulse_response_filter 
- * ************************************************************ */
-
 /* ************************************************************** 
  * Callback issued by the capture device driver. 
  * Args are:
@@ -173,10 +166,14 @@ void filterLP(uint32_t cof, uint32_t sampleFreq, uint8_t * buffer, uint32_t nSam
 void genSineU16(uint16_t freq, uint32_t durationMS, uint16_t amp, uint8_t *buffer);
 
 /**
- * Function to initiate real time threads
+ * Function to initiate real time preprocessing task
  */
-void start_tasks();
+void start_preprocessing_task();
 
+/**
+ * Function to initiate real time speed task
+ */
+void start_speed_task();
 
 /* *************************************************************************************
  * Debug function 
@@ -259,4 +256,3 @@ void printSamplesU8(uint8_t * buffer, int size) {
 			printf("\n\r");
 	}		
 }
-

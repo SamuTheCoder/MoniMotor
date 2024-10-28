@@ -33,4 +33,4 @@ clean:
 # Run the program
 run: $(TARGET)
 	clear
-	./$(TARGET) 0 
+	./$(TARGET) 0
