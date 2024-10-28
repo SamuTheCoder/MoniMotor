@@ -178,7 +178,7 @@ void* speed_task_code(void* arg){
 
 		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-		  printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_speed/1000, (float)max_iat_speed/1000);
+		  printf("Speeds Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_speed/1000, (float)max_iat_speed/1000);
 		  update = 0;
 		}
         cab_buffer_t *cab_buffer = (cab_buffer_t*)arg;
@@ -211,7 +211,7 @@ void* speed_task_code(void* arg){
         //	printf("Ak[%d] = %f\n", i, Ak[i]);
 
 		for(int i = 0; i<=4096/2; i++) {
-			printf("Amplitude at frequency %f Hz is %f \n", fk[i], Ak[i]);
+			//printf("Amplitude at frequency %f Hz is %f \n", fk[i], Ak[i]);
 		}
 
 		
@@ -221,7 +221,7 @@ void* speed_task_code(void* arg){
         float equivalent_frequency = 0;
         for(int i = 0; i < 4096; i++) {
             if(Ak[i] > max_amplitude && fk[i] >= 2000 && fk[i] <= 5000){
-				printf("Speed Task: Found a higher amplitude: %f\n", Ak[i]);
+				//printf("Speed Task: Found a higher amplitude: %f\n", Ak[i]);
                 max_amplitude = Ak[i];
                 equivalent_frequency = fk[i];
             }
@@ -231,7 +231,7 @@ void* speed_task_code(void* arg){
         gRTDB->motor_speed = equivalent_frequency;
         gRTDB->highest_amplitude = max_amplitude;
 
-        printf("Speed Task: motor speed: %d, highest amplitude: %f\n", gRTDB->motor_speed, gRTDB->highest_amplitude);
+        //printf("Speed Task: motor speed: %d, highest amplitude: %f\n", gRTDB->motor_speed, gRTDB->highest_amplitude);
 		
 	}
     free(fk);
@@ -250,7 +250,7 @@ void start_speed_task(){
 	int policy, prio=DEFAULT_PRIO;
 
 	int priority = 50;
-	int periodicity = 300;
+	int periodicity = 500;
 
 	pthread_attr_init(&attr);
 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
