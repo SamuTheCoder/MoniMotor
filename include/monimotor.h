@@ -104,6 +104,7 @@ rt_db_t* gRTDB;
 
 uint64_t min_iat, max_iat; // Hold the minimum/maximum observed time between successive executions
 uint64_t min_iat_speed, max_iat_speed; // Hold the minimum/maximum observed time between successive executions
+uint64_t min_iat_issues, max_iat_issues;
 
 /************************************* 
  * Buffers for issues and speed tasks
@@ -177,6 +178,12 @@ void start_preprocessing_task();
  * Function to initiate real time speed task
  */
 void start_speed_task();
+
+
+/**
+ * Function to initiate real time issues task
+ */
+void start_issues_task();
 
 /* *************************************************************************************
  * Debug function 

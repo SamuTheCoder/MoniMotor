@@ -110,42 +110,7 @@ void genSineU16(uint16_t freq, uint32_t durationMS, uint16_t amp, uint8_t *buffe
 	return;
 }
 
-void *issues_task_code(void *arg)
-{
-	cab_buffer_t *cab_buffer = (cab_buffer_t *)arg;
-
-	// Apply FFT (Convert firstly to complex numbers)
-	uint8_t *aux_buffer = cab_buffer_t_read(cab_buffer);
-	for (int i = 0; i < sizeof(aux_buffer); i++)
-	{
-		gIssuesBuffer[i] = (complex double)aux_buffer[i];
-	}
-
-	fftCompute(gIssuesBuffer, sizeof(gIssuesBuffer) / sizeof(complex double));
-
-	// Check frequencies below 200hz
-	// create fk and Ak buffers
-	float *fk = (float *)malloc(sizeof(gSpeedBuffer) / sizeof(complex double));
-	float *Ak = (float *)malloc(sizeof(gSpeedBuffer) / sizeof(complex double));
-	// Check what frequency has the most amplitude
-	fftGetAmplitude(gSpeedBuffer, sizeof(gSpeedBuffer) / sizeof(complex double), SAMP_FREQ, fk, Ak);
-
-	for (int i = 0; i < sizeof(Ak) / sizeof(float); i++)
-	{
-		if (fk[i] < 200)
-		{
-			if (Ak[i] > 0.2 * gRTDB->highest_amplitude)
-			{
-				gRTDB->has_bearing_issues = 1;
-				break;
-			}
-		}
-	}
-
-	free(fk);
-	free(Ak);
-}
-
+	
 int main(int argc, char *argv[])
 {
 
@@ -298,6 +263,7 @@ int main(int argc, char *argv[])
 	/** Start Tasks */
 	start_preprocessing_task();
 	start_speed_task();
+	start_issues_task();
 
 #define RECORD
 #ifdef RECORD
