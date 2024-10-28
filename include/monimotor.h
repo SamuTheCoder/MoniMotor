@@ -47,6 +47,9 @@
 #define DEFAULT_PRIO 50				// Default (fixed) thread priority  
 #define THREAD_INIT_OFFSET 1000000	// Initial offset (i.e. delay) of rt thread
 
+
+clock_t clk_callback = 0;
+
 const int MAX_RECORDING_DEVICES = 10;		/* Maximum allowed number of souns devices that will be detected */
 
 //Maximum recording time
