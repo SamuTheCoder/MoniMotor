@@ -256,3 +256,19 @@ void printSamplesU8(uint8_t * buffer, int size) {
 			printf("\n\r");
 	}		
 }
+
+/* ***********************************************
+ * Debug function: 
+ *       Prints the buffer contents - uint16 samples * 
+ * **********************************************/
+void printSamplesU16(uint8_t * buffer, int nsamples) {
+	int i=0;
+	uint16_t * bufu16 = (uint16_t *)buffer;
+	 
+	printf("\n\r Samples: \n\r");
+	for(i = 0; i < nsamples; i++) {
+		printf("%5u ",bufu16[i]);
+		if((i%20) == 0)
+			printf("\n\r");
+	}		
+}

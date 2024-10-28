@@ -2,65 +2,49 @@
 #include <sched.h> //sched_setscheduler
 #include "tasks.c"
 
-/* ***********************************************
- * Debug function: 
- *       Prints the buffer contents - uint16 samples * 
- * **********************************************/
-void printSamplesU16(uint8_t * buffer, int nsamples) {
-	int i=0;
-	uint16_t * bufu16 = (uint16_t *)buffer;
-	 
-	printf("\n\r Samples: \n\r");
-	for(i = 0; i < nsamples; i++) {
-		printf("%5u ",bufu16[i]);
-		if((i%20) == 0)
-			printf("\n\r");
-	}		
-}
+
 void audioRecordingCallback(void* userdata, Uint8* stream, int len )
 {	
+	
+	printf("\nLen: %d\n", len);
+
+	//printSamplesU8(stream, len);
+
 	/* Copy bytes acquired from audio stream */
 	if(choose_buffer == gRecordingBuffer1)
 	{
-		printf("Callback Buffer 1\n");
+		printf("Callback: Copying to Buffer 1\n");
+		gBufferBytePosition = 0;
 		memcpy(&choose_buffer[gBufferBytePosition], stream, len);
 		gBufferBytePosition += len;
+		//printSamplesU8(choose_buffer, len);
+		//printf("\n");
 	}
 	else
 	{
-		printf("Callback Buffer 2\n");
+		printf("Callback: Copying to Buffer 2\n");
+		gBufferBytePosition2 = 0;
 		memcpy(&choose_buffer[gBufferBytePosition2], stream, len);
 		gBufferBytePosition2 += len;
+		//printSamplesU8(choose_buffer, len);
+		//printf("\n");
 	}
 
 	LOCK(&choose_buffer_mutex);
-	printf("Callback: Signaling\n");
+	printf("Callback: Signal task\n");
 	if(choose_buffer == gRecordingBuffer1)
 	{
-		if(gBufferBytePosition >= gBufferByteMaxPosition)
-		{
-			printf("Callback: Print samplees to Buff1\n");
-			for(int i = 0; i < len; i++){
-				printf("%u", stream[i]);
-				printf(" ---- ");
-			}
-			choose_buffer = gRecordingBuffer2;
-			pthread_cond_signal(&gPreprocessingSignal);
-		}
+		printf("Callback: Switch to Buffer2\n");
+		choose_buffer = gRecordingBuffer2;	
 	}
 	else
 	{
-		if(gBufferBytePosition2 >= gBufferByteMaxPosition2)
-		{
-			printf("Callback: Print samplees to Buff1\n");
-			for(int i = 0; i < len; i++){
-				printf("%u", stream[i]);
-				printf(" ---- ");
-			}
-			choose_buffer = gRecordingBuffer1;
-			pthread_cond_signal(&gPreprocessingSignal);
-		}
+		printf("Callback: Switch to Bufferr1\n");
+		choose_buffer = gRecordingBuffer1;
+		
 	}
+
+	pthread_cond_signal(&gPreprocessingSignal);
 	//Signal the preprocessing task that there is data to be processed
 	UNLOCK(&choose_buffer_mutex);
 }
@@ -294,7 +278,7 @@ int main(int argc, char *argv[]){
 
 	/** Start Tasks */
 	start_preprocessing_task();
-	//start_speed_task();
+	start_speed_task();
 
 #define RECORD
 #ifdef RECORD
