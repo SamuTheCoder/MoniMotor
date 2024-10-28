@@ -187,30 +187,32 @@ void* speed_task_code(void* arg){
         //For each sample on cab
         //convert to complex and store on gSpeedBuffer
         aux_buffer = (uint16_t *) cab_buffer_t_read(cab_buffer);
+
+		uint16_t number_samples = gBufferByteSize / 2;
 		
         if(aux_buffer == NULL){
             printf("Speed Task: CAB buffer is still empty\n");
             continue;
         }
 
-        for(int i = 0; i < 4096; i++){
+        for(int i = 0; i < number_samples; i++){
             gSpeedBuffer[i] = (complex double)aux_buffer[i];
         }
 
 
         //Convert from time domain to frequency domain (FFT)
-        fftCompute(gSpeedBuffer, 4096);
+        fftCompute(gSpeedBuffer, number_samples);
         
         //Check what frequency has the most amplitude
 		if(gSpeedBuffer == NULL)
             printf("Speed Task: Speed buff is null\n");
         
-        fftGetAmplitude(gSpeedBuffer, 4096, SAMP_FREQ, fk, Ak);
+        fftGetAmplitude(gSpeedBuffer, number_samples, SAMP_FREQ, fk, Ak);
 
 		//for (int i = 0; i < gBufferByteSize * sizeof(float); ++i * sizeof(float)) {
         //	printf("Ak[%d] = %f\n", i, Ak[i]);
 
-		for(int i = 0; i<=4096/2; i++) {
+		for(int i = 0; i<=number_samples / 2; i++) { // Floats 
 			//printf("Amplitude at frequency %f Hz is %f \n", fk[i], Ak[i]);
 		}
 
@@ -219,7 +221,7 @@ void* speed_task_code(void* arg){
         // Must be frequencies between 2kHz and 5kHz
         float max_amplitude = 0;
         float equivalent_frequency = 0;
-        for(int i = 0; i < 4096; i++) {
+        for(int i = 1; i < number_samples; i++) {
             if(Ak[i] > max_amplitude && fk[i] >= 2000 && fk[i] <= 5000){
 				//printf("Speed Task: Found a higher amplitude: %f\n", Ak[i]);
                 max_amplitude = Ak[i];
@@ -336,23 +338,23 @@ void *issues_task_code(void *arg)
             printf("Issues Task: CAB buffer is still empty\n");
             continue;
         }
-		for (int i = 0; i < 4096; i++)
+
+		uint16_t samples_number = gBufferByteSize / 2;
+
+		for (int i = 0; i < samples_number; i++)
 		{
-			gIssuesBuffer[i] = (complex double )aux_buffer[i];
+			gIssuesBuffer[i] = (complex double)aux_buffer[i];
 		}
 
-		fftCompute(gIssuesBuffer, 4096);
+		fftCompute(gIssuesBuffer, samples_number);
 
 		// Check frequencies below 200hz
 		// Check what frequency has the most amplitude
-		fftGetAmplitude(gSpeedBuffer, 4096, SAMP_FREQ, fk, Ak);
+		fftGetAmplitude(gSpeedBuffer, samples_number, SAMP_FREQ, fk, Ak);
 
-		for (int i = 1; i < 4096; i++)
-		{
-			if (fk[i] < 200)
-			{
-				if (Ak[i] > 0.2 * gRTDB->highest_amplitude)
-				{
+		for (int i = 1; i < samples_number; i++){
+			if (fk[i] < 200) {
+				if (Ak[i] > 0.2 * gRTDB->highest_amplitude) {
 					gRTDB->has_bearing_issues = 1;
 					printf("Max Amplitude: %f", gRTDB->highest_amplitude);
 					printf("Found freq %f - amp %f: bearing issue\n", fk[i], Ak[i]);
@@ -390,6 +392,101 @@ void start_issues_task(){
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
 	int err=pthread_create(&threadid, &attr, issues_task_code, (void*)cab_buffer);
+	if(err != 0)
+		printf("\n\r Error creating Preprocessing Thread [%s]", strerror(err));
+	printf("Created Speed Task\n");
+}
+
+void *rtdb_task_code(void *arg)
+{
+	printf("RTDB Task: Started\n");
+	/* Timespec variables to manage time */
+	struct timespec ts, // thread next activation time (absolute)
+			ta, 		// activation time of current thread activation (absolute)
+			tit, 		// thread time from last execution,
+			ta_ant, 	// activation time of last instance (absolute),
+			tp; 		// Thread period
+
+	int niter = 0;
+	int update;
+	
+	usleep(1000000);
+
+	tp.tv_nsec = 500 * 1000 * 1000;
+	tp.tv_sec = 0;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	ts = TsAdd(ts, tp);
+
+	while(1){
+		/* Wait until next cycle */
+		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,&ts,NULL);
+		clock_gettime(CLOCK_MONOTONIC, &ta);		
+		ts = TsAdd(ts,tp);		
+		
+		niter++; // Coount number of activations
+		
+		/* Compute latency and jitter */
+		if( niter == 1) 
+			ta_ant = ta; // Init ta_ant at first activation
+			
+			tit=TsSub(ta,ta_ant);  // Compute time since last activation
+		
+		if( niter == BOOT_ITER) {	// Boot time finsihed. Init max/min variables	    
+			  min_iat = tit.tv_nsec;
+			  max_iat = tit.tv_nsec;
+			  update = 1;
+		}else
+		if( niter > BOOT_ITER){ 	// Update max/min, if boot time elapsed 	    
+			if(tit.tv_nsec < min_iat) {
+			  min_iat = tit.tv_nsec;
+			  update = 1;
+			}
+			if(tit.tv_nsec > max_iat) {
+			  max_iat = tit.tv_nsec;
+			  update = 1;
+			}
+		}
+		ta_ant = ta; // Update ta_ant
+
+		/* Print maximum/minimum mount of time between successive executions */
+		if(update) {		  
+		  printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
+		  update = 0;
+		}
+
+		//Print RTDB Values
+		printf("RTDB Values:\n");
+		printf("Motor Speed: %dHz\n", gRTDB->motor_speed);
+		printf("Highest Amplitude: %f\n", gRTDB->highest_amplitude);
+		printf("Bearing Issues: %u\n", gRTDB->has_bearing_issues);
+	}
+}
+
+
+void start_rtdb_task(){
+    //Start real time threads
+	// For thread with RT attributes
+	pthread_t threadid;
+	struct sched_param parm; 
+	pthread_attr_t attr;
+	cpu_set_t cpuset_test; // To check process affinity
+	
+	// For RT scheduler
+	int policy, prio=DEFAULT_PRIO;
+
+	int priority = 30;
+	int periodicity = 500;
+
+	pthread_attr_init(&attr);
+	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+	parm.sched_priority = priority;
+	pthread_attr_setschedparam(&attr, &parm);
+	
+	/* Lock memory */
+	mlockall(MCL_CURRENT | MCL_FUTURE);
+
+	int err=pthread_create(&threadid, &attr, rtdb_task_code, NULL);
 	if(err != 0)
 		printf("\n\r Error creating Preprocessing Thread [%s]", strerror(err));
 	printf("Created Speed Task\n");

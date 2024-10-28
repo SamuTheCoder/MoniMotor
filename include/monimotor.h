@@ -137,12 +137,13 @@ typedef struct
 void *preprocessing_task_code(void *arg);
 
 // Speed thread code
-
 void* speed_task_code(void *arg);
 
 // Issues thread code
-
 void* issues_task_code(void *arg);
+
+// RDTB thread code
+void *rtdb_task_code(void *arg);
 
 
 // Aux functions
@@ -179,11 +180,15 @@ void start_preprocessing_task();
  */
 void start_speed_task();
 
-
 /**
  * Function to initiate real time issues task
  */
 void start_issues_task();
+
+/**
+ * Function to initiate real time print database task
+ */
+void start_rtdb_task();
 
 /* *************************************************************************************
  * Debug function 

@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 	bytesPerSecond = gReceivedRecordingSpec.freq * bytesPerSample;
 
 	/* Calculate buffer size, for the desired duration  */
-	gBufferByteSize = 5 * bytesPerSecond;
+	gBufferByteSize = 8192;
 
 	/* Calculate max buffer use - some additional space to allow for extra samples*/
 	/* Detection of buffer use is made form device-driver callback, so can be a biffer overrun if some */
@@ -264,6 +264,7 @@ int main(int argc, char *argv[])
 	start_preprocessing_task();
 	start_speed_task();
 	start_issues_task();
+	start_rtdb_task();
 
 #define RECORD
 #ifdef RECORD
