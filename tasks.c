@@ -54,7 +54,7 @@ void* preprocessing_task_code(void* arg){
 
 		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-			printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
+			//printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
 			update = 0;
 		}
 
@@ -82,7 +82,7 @@ void* preprocessing_task_code(void* arg){
                 printf("Preprocessing Task: Couldn't write to CAB\n");
                 continue;
             }
-			printf("Preprocessing Task wrote from gRecordingBuffer1\n");
+			//printf("Preprocessing Task wrote from gRecordingBuffer1\n");
 			//printSamplesU16(gRecordingBuffer1, gBufferBytePosition/sizeof(uint16_t));
 			//printf("\n");
 		}
@@ -180,7 +180,7 @@ void* speed_task_code(void* arg){
 
 		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-			printf("Speed Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_speed/1000, (float)max_iat_speed/1000);
+			//printf("Speed Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_speed/1000, (float)max_iat_speed/1000);
 			update = 0;
 		}
 
@@ -326,7 +326,7 @@ void *issues_task_code(void *arg)
 		ta_ant = ta; // Update ta_ant
 
 		if(update) {		  
-			printf("Issues Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_issues/1000, (float)max_iat_issues/1000);
+			//printf("Issues Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_issues/1000, (float)max_iat_issues/1000);
 			update = 0;
 		}
 		cab_buffer_t *cab_buffer = (cab_buffer_t *)arg;
@@ -448,7 +448,7 @@ void *rtdb_task_code(void *arg)
 		ta_ant = ta; // Update ta_ant
 
 		if(update) {		  
-			printf("RTDB Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
+			//printf("RTDB Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
 			update = 0;
 		}
 
@@ -457,6 +457,7 @@ void *rtdb_task_code(void *arg)
 		printf("Motor Speed: %dHz\n", gRTDB->motor_speed);
 		printf("Highest Amplitude: %f\n", gRTDB->highest_amplitude);
 		printf("Bearing Issues: %u\n", gRTDB->has_bearing_issues);
+
 	}
 }
 
@@ -473,7 +474,7 @@ void start_rtdb_task(){
 	int policy, prio=DEFAULT_PRIO;
 
 	int priority = 50;
-	int periodicity = 500;
+	int periodicity = 300;
 
 	pthread_attr_init(&attr);
 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);

@@ -4,9 +4,6 @@
 
 void audioRecordingCallback(void *userdata, Uint8 *stream, int len)
 {
-	printf("\nEntrei callback\n\n");
-	fflush(stdout);
-
 	if (clk_callback == 0){
 		clk_callback = clock();
 	}
@@ -17,7 +14,7 @@ void audioRecordingCallback(void *userdata, Uint8 *stream, int len)
 
 	/* Copy bytes acquired from audio stream */
 	if (choose_buffer == gRecordingBuffer1){
-		printf("Callback: Copying to Buffer 1\n");
+		//printf("Callback: Copying to Buffer 1\n");
 		gBufferBytePosition = 0;
 		memcpy(&choose_buffer[gBufferBytePosition], stream, len);
 		gBufferBytePosition += len;
@@ -26,7 +23,7 @@ void audioRecordingCallback(void *userdata, Uint8 *stream, int len)
 
 	}
 	else{
-		printf("Callback: Copying to Buffer 2\n");
+		//printf("Callback: Copying to Buffer 2\n");
 		gBufferBytePosition2 = 0;
 		memcpy(&choose_buffer[gBufferBytePosition2], stream, len);
 		gBufferBytePosition2 += len;
@@ -273,21 +270,18 @@ int main(int argc, char *argv[])
 
 	/* After being open devices have callback processing blocked (paused_on active), to allow configuration without glitches */
 	/* Devices must be unpaused to allow callback processing */
-	/* Wait until recording buffer full */
-	SDL_PauseAudioDevice(recordingDeviceId, 0); /* Args are SDL device id and pause_on */
-	
 	gRTDB->has_bearing_issues = 0;
 	gRTDB->highest_amplitude = 0;
 	gRTDB->motor_speed = 0;
-	while(1);
+
+	SDL_PauseAudioDevice(recordingDeviceId, 0); /* Args are SDL device id and pause_on */
+	
+	while(1){
+		usleep(10);
+	}
 	SDL_PauseAudioDevice(recordingDeviceId, 1); /* Args are SDL device id and pause_on */
 
-	/* *****************************************************************
-	 * Recorded data obtained. Now process it and play it back
-	 * *****************************************************************/
-
 #endif
-
 
 	SDL_Quit();
 }
