@@ -5,48 +5,32 @@
 void audioRecordingCallback(void *userdata, Uint8 *stream, int len)
 {
 
-	if (clk_callback == 0)
-	{
-		printf("O samuel não sabe fazer timers\n");
+	if (clk_callback == 0){
 		clk_callback = clock();
 	}
-	else
-	{
+	else{
 		clk_callback = clock() - clk_callback;
 		double elapsed_ms = ((double)clk_callback / CLOCKS_PER_SEC) * 1000;
-		printf("Callback frequency: %f\n", elapsed_ms);
 	}
 
 	/* Copy bytes acquired from audio stream */
-	if (choose_buffer == gRecordingBuffer1)
-	{
-		printf("Callback: Copying to Buffer 1\n");
+	if (choose_buffer == gRecordingBuffer1){
 		gBufferBytePosition = 0;
 		memcpy(&choose_buffer[gBufferBytePosition], stream, len);
 		gBufferBytePosition += len;
-		// printSamplesU8(choose_buffer, len);
-		// printf("\n");
+
 	}
-	else
-	{
-		printf("Callback: Copying to Buffer 2\n");
+	else{
 		gBufferBytePosition2 = 0;
 		memcpy(&choose_buffer[gBufferBytePosition2], stream, len);
 		gBufferBytePosition2 += len;
-		// printSamplesU8(choose_buffer, len);
-		// printf("\n");
 	}
 
 	LOCK(&choose_buffer_mutex);
-	printf("Callback: Signal task\n");
-	if (choose_buffer == gRecordingBuffer1)
-	{
-		printf("Callback: Switch to Buffer2\n");
+	if (choose_buffer == gRecordingBuffer1){
 		choose_buffer = gRecordingBuffer2;
 	}
-	else
-	{
-		printf("Callback: Switch to Bufferr1\n");
+	else{
 		choose_buffer = gRecordingBuffer1;
 	}
 
@@ -265,7 +249,7 @@ int main(int argc, char *argv[])
 	start_speed_task();
 	start_issues_task();
 	start_rtdb_task();
-
+while(1){
 #define RECORD
 #ifdef RECORD
 
@@ -284,7 +268,9 @@ int main(int argc, char *argv[])
 	SDL_PauseAudioDevice(recordingDeviceId, 0); /* Args are SDL device id and pause_on */
 
 	sleep(5);
-
+	gRTDB->has_bearing_issues = 0;
+	gRTDB->highest_amplitude = 0;
+	gRTDB->motor_speed = 0;
 	SDL_PauseAudioDevice(recordingDeviceId, 0); /* Args are SDL device id and pause_on */
 
 	/* *****************************************************************
@@ -295,8 +281,14 @@ int main(int argc, char *argv[])
 
 #define GENSINE
 #ifdef GENSINE
-	printf("\n Generating a sine wave \n");
-	genSineU16(1000, 1000, 30000, choose_buffer); /* freq, durationMS, amp, buffer */
+	uint16_t freq;
+	uint16_t amp;
+		freq = (rand() % 501) + 500; // 500 to 1000
+		amp = (rand() % 10001) + 20000;
+		genSineU16(freq, 1000, amp, choose_buffer); /* freq, durationMS, amp, buffer */
 
 #endif
+}
+
+	SDL_Quit();
 }

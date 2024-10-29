@@ -52,12 +52,11 @@ void* preprocessing_task_code(void* arg){
 
 		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-		  printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
-		  update = 0;
+			//printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
+			update = 0;
 		}
 
 		//Wait for signal from audioRecordingCallback
-		printf("Preprocessing Task: Waiting for Signal\n");
 		LOCK(&choose_buffer_mutex);
 		pthread_cond_wait(&gPreprocessingSignal, &choose_buffer_mutex);
 
@@ -65,27 +64,18 @@ void* preprocessing_task_code(void* arg){
 		//if choose_buffer is 1, write to 2, if its 2 write to 1
 		if(choose_buffer == gRecordingBuffer1){
 			filterLP(1000, SAMP_FREQ, gRecordingBuffer2, gBufferBytePosition2/sizeof(uint16_t));
-			//printf("Preprocessing Task: gRecordingBuffer2 samples\n");
-			//printSamplesU16(gRecordingBuffer2, gBufferBytePosition2/sizeof(uint16_t));
-			//printf("\n");
-			
+
 			if(cab_buffer_t_write(cab_buffer, gRecordingBuffer2)){
                 printf("Preprocessing Task: Couldn't write to CAB\n");
                 continue;
             }
-			printf("Preprocessing Task: Written to CAB Buff 2\n");
 		}
 		else{
 			filterLP(1000, SAMP_FREQ, gRecordingBuffer1, gBufferBytePosition/sizeof(uint16_t));
-			//printf("Preprocessing Task: gRecordingBuffer1 samples\n");
-			//printSamplesU16(gRecordingBuffer1, gBufferBytePosition/sizeof(uint16_t));
-			//printf("\n");
-
 			if(cab_buffer_t_write(cab_buffer, gRecordingBuffer1)){
                 printf("Preprocessing Task: Couldn't write to CAB\n");
                 continue;
             }
-			printf("Preprocessing Task: Written to CAB Buff 1\n");
 		}
 
 		UNLOCK(&choose_buffer_mutex);
@@ -178,8 +168,8 @@ void* speed_task_code(void* arg){
 
 		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-		  printf("Speeds Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_speed/1000, (float)max_iat_speed/1000);
-		  update = 0;
+			printf("Speed Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_speed/1000, (float)max_iat_speed/1000);
+			update = 0;
 		}
         cab_buffer_t *cab_buffer = (cab_buffer_t*)arg;
 
@@ -209,12 +199,10 @@ void* speed_task_code(void* arg){
         
         fftGetAmplitude(gSpeedBuffer, number_samples, SAMP_FREQ, fk, Ak);
 
-		//for (int i = 0; i < gBufferByteSize * sizeof(float); ++i * sizeof(float)) {
-        //	printf("Ak[%d] = %f\n", i, Ak[i]);
 
-		for(int i = 0; i<=number_samples / 2; i++) { // Floats 
+		//for(int i = 0; i<=number_samples / 2; i++) { // Floats 
 			//printf("Amplitude at frequency %f Hz is %f \n", fk[i], Ak[i]);
-		}
+		//}
 
 		
         // Check for highest value of Ak
@@ -265,8 +253,7 @@ void start_speed_task(){
 
 	int err=pthread_create(&threadid, &attr, speed_task_code, (void*)cab_buffer);
 	if(err != 0)
-		printf("\n\r Error creating Preprocessing Thread [%s]", strerror(err));
-	printf("Created Speed Task\n");
+		printf("\n\r Error creating start speed task Thread [%s]", strerror(err));
 }
 
 void *issues_task_code(void *arg)
@@ -325,10 +312,9 @@ void *issues_task_code(void *arg)
 		}
 		ta_ant = ta; // Update ta_ant
 
-		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-		  printf("Issues Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_issues/1000, (float)max_iat_issues/1000);
-		  update = 0;
+			printf("Issues Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_issues/1000, (float)max_iat_issues/1000);
+			update = 0;
 		}
 		cab_buffer_t *cab_buffer = (cab_buffer_t *)arg;
 
@@ -351,7 +337,7 @@ void *issues_task_code(void *arg)
 		// Check frequencies below 200hz
 		// Check what frequency has the most amplitude
 		fftGetAmplitude(gSpeedBuffer, samples_number, SAMP_FREQ, fk, Ak);
-
+		gRTDB->has_bearing_issues = 0;
 		for (int i = 1; i < samples_number; i++){
 			if (fk[i] < 200) {
 				if (Ak[i] > 0.2 * gRTDB->highest_amplitude) {
@@ -393,8 +379,7 @@ void start_issues_task(){
 
 	int err=pthread_create(&threadid, &attr, issues_task_code, (void*)cab_buffer);
 	if(err != 0)
-		printf("\n\r Error creating Preprocessing Thread [%s]", strerror(err));
-	printf("Created Speed Task\n");
+		printf("\n\r Error creating Issues Thread [%s]", strerror(err));
 }
 
 void *rtdb_task_code(void *arg)
@@ -448,10 +433,9 @@ void *rtdb_task_code(void *arg)
 		}
 		ta_ant = ta; // Update ta_ant
 
-		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-		  printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
-		  update = 0;
+			printf("Issues Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
+			update = 0;
 		}
 
 		//Print RTDB Values
@@ -488,6 +472,5 @@ void start_rtdb_task(){
 
 	int err=pthread_create(&threadid, &attr, rtdb_task_code, NULL);
 	if(err != 0)
-		printf("\n\r Error creating Preprocessing Thread [%s]", strerror(err));
-	printf("Created Speed Task\n");
+		printf("\n\r Error creating RTDB Thread [%s]", strerror(err));
 }

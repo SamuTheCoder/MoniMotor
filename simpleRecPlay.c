@@ -399,7 +399,7 @@ int main(int argc, char ** argv)
 			bytesPerSample, bytesPerSecond,gBufferByteSize, gBufferByteMaxPosition);
 	printf("\n\r *********** \n\r");
 
-//#define RECORD
+#define RECORD
 #ifdef RECORD
 
 	/* ******************************************************
@@ -440,7 +440,7 @@ int main(int argc, char ** argv)
  
 #endif
 
-#define GENSINE
+//define GENSINE
 #ifdef GENSINE
 	printf("\n Generating a sine wave \n");
 	genSineU16(1000, 1000, 30000, gRecordingBuffer1); 	/* freq, durationMS, amp, buffer */
