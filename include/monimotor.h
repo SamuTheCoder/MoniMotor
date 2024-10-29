@@ -105,6 +105,7 @@ rt_db_t* gRTDB;
 uint64_t min_iat, max_iat; // Hold the minimum/maximum observed time between successive executions
 uint64_t min_iat_speed, max_iat_speed; // Hold the minimum/maximum observed time between successive executions
 uint64_t min_iat_issues, max_iat_issues;
+uint64_t min_iat_rtdb, max_iat_rtdb;
 
 /************************************* 
  * Buffers for issues and speed tasks
@@ -182,7 +183,7 @@ void start_issues_task();
 /**
  * Function to initiate real time print database task
  */
-void start_rtdb_task();
+void start_rtdb_task(int priority, int periodicity);
 
 /* *************************************************************************************
  * Debug function 

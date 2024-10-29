@@ -54,7 +54,7 @@ void* preprocessing_task_code(void* arg){
 
 		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-			//printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
+			printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
 			update = 0;
 		}
 
@@ -82,7 +82,7 @@ void* preprocessing_task_code(void* arg){
                 printf("Preprocessing Task: Couldn't write to CAB\n");
                 continue;
             }
-			//printf("Preprocessing Task wrote from gRecordingBuffer1\n");
+			printf("Preprocessing Task wrote from gRecordingBuffer1\n");
 			//printSamplesU16(gRecordingBuffer1, gBufferBytePosition/sizeof(uint16_t));
 			//printf("\n");
 		}
@@ -136,7 +136,7 @@ void* speed_task_code(void* arg){
 	
 	usleep(1000000);
 
-	tp.tv_nsec = 1000 * 1000 * 1000;
+	tp.tv_nsec = 250 * 1000 * 1000;
 	tp.tv_sec = 0;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	ts = TsAdd(ts, tp);
@@ -180,7 +180,7 @@ void* speed_task_code(void* arg){
 
 		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-			//printf("Speed Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_speed/1000, (float)max_iat_speed/1000);
+			printf("Speed Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_speed/1000, (float)max_iat_speed/1000);
 			update = 0;
 		}
 
@@ -200,7 +200,7 @@ void* speed_task_code(void* arg){
             gSpeedBuffer[i] = (complex double)aux_buffer[i];
         }
 
-		cab_buffer_t_release(cab_buffer, (u_int8_t*) aux_buffer);
+		cab_buffer_t_release(cab_buffer, (uint8_t*) aux_buffer);
 
 
         //Convert from time domain to frequency domain (FFT)
@@ -252,8 +252,7 @@ void start_speed_task(){
 	// For RT scheduler
 	int policy;
 
-	int priority = 1;
-	int periodicity = 10000;
+	int priority = 40;
 
 	pthread_attr_init(&attr);
 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
@@ -326,7 +325,7 @@ void *issues_task_code(void *arg)
 		ta_ant = ta; // Update ta_ant
 
 		if(update) {		  
-			//printf("Issues Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_issues/1000, (float)max_iat_issues/1000);
+			printf("Issues Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_issues/1000, (float)max_iat_issues/1000);
 			update = 0;
 		}
 		cab_buffer_t *cab_buffer = (cab_buffer_t *)arg;
@@ -344,7 +343,7 @@ void *issues_task_code(void *arg)
 			gIssuesBuffer[i] = (complex double)aux_buffer[i];
 		}
 
-		cab_buffer_t_release(cab_buffer, (u_int8_t*) aux_buffer);
+		cab_buffer_t_release(cab_buffer, (uint8_t*) aux_buffer);
 
 		fftCompute(gIssuesBuffer, samples_number);
 
@@ -379,7 +378,7 @@ void start_issues_task(){
 	// For RT scheduler
 	int policy, prio=DEFAULT_PRIO;
 
-	int priority = 10;
+	int priority = 5;
 	int periodicity = 2000;
 
 	pthread_attr_init(&attr);
@@ -408,10 +407,12 @@ void *rtdb_task_code(void *arg)
 
 	int niter = 0;
 	int update;
+
+	thread_data_t* args = (thread_data_t*) arg;
 	
 	usleep(1000000);
 
-	tp.tv_nsec = 500 * 1000 * 1000;
+	tp.tv_nsec = args->periodicity * 1000 * 1000;
 	tp.tv_sec = 0;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	ts = TsAdd(ts, tp);
@@ -431,24 +432,24 @@ void *rtdb_task_code(void *arg)
 			tit=TsSub(ta,ta_ant);  // Compute time since last activation
 		
 		if( niter == BOOT_ITER) {	// Boot time finsihed. Init max/min variables	    
-			  min_iat = tit.tv_nsec;
-			  max_iat = tit.tv_nsec;
+			  min_iat_rtdb = tit.tv_nsec;
+			  max_iat_rtdb = tit.tv_nsec;
 			  update = 1;
 		}else
 		if( niter > BOOT_ITER){ 	// Update max/min, if boot time elapsed 	    
-			if(tit.tv_nsec < min_iat) {
-			  min_iat = tit.tv_nsec;
+			if(tit.tv_nsec < min_iat_rtdb) {
+			  min_iat_rtdb = tit.tv_nsec;
 			  update = 1;
 			}
-			if(tit.tv_nsec > max_iat) {
-			  max_iat = tit.tv_nsec;
+			if(tit.tv_nsec > max_iat_rtdb) {
+			  max_iat_rtdb = tit.tv_nsec;
 			  update = 1;
 			}
 		}
 		ta_ant = ta; // Update ta_ant
 
 		if(update) {		  
-			//printf("RTDB Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
+			printf("RTDB Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_rtdb/1000, (float)max_iat_rtdb/1000);
 			update = 0;
 		}
 
@@ -462,7 +463,7 @@ void *rtdb_task_code(void *arg)
 }
 
 
-void start_rtdb_task(){
+void start_rtdb_task(int priority, int periodicity){
     //Start real time threads
 	// For thread with RT attributes
 	pthread_t threadid;
@@ -473,19 +474,21 @@ void start_rtdb_task(){
 	// For RT scheduler
 	int policy, prio=DEFAULT_PRIO;
 
-	int priority = 50;
-	int periodicity = 300;
-
+	printf("RTDB priority: %d, periodicity %d", priority, periodicity);
 	pthread_attr_init(&attr);
 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
 	parm.sched_priority = priority;
 	pthread_attr_setschedparam(&attr, &parm);
+
+	thread_data_t* thread_data = (thread_data_t*) malloc(sizeof(thread_data_t));
+	thread_data->cab_buffer = NULL;
+	thread_data->periodicity = periodicity;
 	
 	/* Lock memory */
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
-	int err=pthread_create(&threadid, &attr, rtdb_task_code, NULL);
+	int err=pthread_create(&threadid, &attr, rtdb_task_code, (void*) thread_data);
 	if(err != 0)
 		printf("\n\r Error creating RTDB Thread [%s]", strerror(err));
 }

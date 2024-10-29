@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
 	start_preprocessing_task(atoi(argv[1]), atoi(argv[2]));
 	start_speed_task();
 	start_issues_task();
-	start_rtdb_task();
+	start_rtdb_task(atoi(argv[3]), atoi(argv[4]));
 
 
 #define RECORD
