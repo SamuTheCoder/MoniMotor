@@ -65,7 +65,7 @@ uint8_t cab_buffer_t_write(cab_buffer_t* cab_buffer, uint8_t* stream){
     // To check if the buffer is being used by other tasks
     // And also never write on the current most recent buffer
 
-    for(int i = 0; i < cab_buffer->n_buffers; i++) // sizeof(cab_buffer->buffer_array)/sizeof(buffer) 
+    for(int i = 0; i < cab_buffer->n_buffers; i++) 
     {
         if(cab_buffer->buffer_array[i].link_count == 0 && cab_buffer->most_recent != i) // Nobody is using and not the most recent
         {

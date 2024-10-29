@@ -440,7 +440,7 @@ int main(int argc, char ** argv)
  
 #endif
 
-//define GENSINE
+#define GENSINE
 #ifdef GENSINE
 	printf("\n Generating a sine wave \n");
 	genSineU16(1000, 1000, 30000, gRecordingBuffer1); 	/* freq, durationMS, amp, buffer */

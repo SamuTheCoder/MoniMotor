@@ -12,10 +12,9 @@ void* preprocessing_task_code(void* arg){
 	int niter = 0;
 	int update;
 	
-	usleep(1000000);
+	usleep(10000);
 
 	thread_data_t * args = (thread_data_t*) arg;
-
 
 	tp.tv_nsec = args->periodicity * 1000 * 1000;
 	tp.tv_sec = 0;
@@ -101,7 +100,7 @@ void start_preprocessing_task(int priority, int periodicity){
 	cpu_set_t cpuset_test; // To check process affinity
 	
 	// For RT scheduler
-	int policy, prio=DEFAULT_PRIO;
+	int policy;
 
 
 	pthread_attr_init(&attr);
@@ -137,7 +136,7 @@ void* speed_task_code(void* arg){
 	
 	usleep(1000000);
 
-	tp.tv_nsec = 500 * 1000 * 1000;
+	tp.tv_nsec = 1000 * 1000 * 1000;
 	tp.tv_sec = 0;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	ts = TsAdd(ts, tp);
@@ -146,6 +145,7 @@ void* speed_task_code(void* arg){
     float* Ak = (float*)malloc(gBufferByteSize * sizeof(float));
 
 	uint16_t* aux_buffer;
+	cab_buffer_t *cab_buffer = (cab_buffer_t*)arg;
 
 	while(1){
 		/* Wait until next cycle */
@@ -183,7 +183,6 @@ void* speed_task_code(void* arg){
 			printf("Speed Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat_speed/1000, (float)max_iat_speed/1000);
 			update = 0;
 		}
-        cab_buffer_t *cab_buffer = (cab_buffer_t*)arg;
 
         //Convert data to complex numbers
         //For each sample on cab
@@ -200,6 +199,8 @@ void* speed_task_code(void* arg){
         for(int i = 0; i < number_samples; i++){
             gSpeedBuffer[i] = (complex double)aux_buffer[i];
         }
+
+		cab_buffer_t_release(cab_buffer, (u_int8_t*) aux_buffer);
 
 
         //Convert from time domain to frequency domain (FFT)
@@ -249,10 +250,10 @@ void start_speed_task(){
 	cpu_set_t cpuset_test; // To check process affinity
 	
 	// For RT scheduler
-	int policy, prio=DEFAULT_PRIO;
+	int policy;
 
-	int priority = 50;
-	int periodicity = 500;
+	int priority = 1;
+	int periodicity = 10000;
 
 	pthread_attr_init(&attr);
 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
@@ -283,7 +284,7 @@ void *issues_task_code(void *arg)
 	
 	usleep(1000000);
 
-	tp.tv_nsec = 500 * 1000 * 1000;
+	tp.tv_nsec = 2000 * 1000 * 1000;
 	tp.tv_sec = 0;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	ts = TsAdd(ts, tp);
@@ -339,10 +340,11 @@ void *issues_task_code(void *arg)
 
 		uint16_t samples_number = gBufferByteSize / 2;
 
-		for (int i = 0; i < samples_number; i++)
-		{
+		for (int i = 0; i < samples_number; i++){
 			gIssuesBuffer[i] = (complex double)aux_buffer[i];
 		}
+
+		cab_buffer_t_release(cab_buffer, (u_int8_t*) aux_buffer);
 
 		fftCompute(gIssuesBuffer, samples_number);
 
@@ -354,8 +356,8 @@ void *issues_task_code(void *arg)
 			if (fk[i] < 200) {
 				if (Ak[i] > 0.2 * gRTDB->highest_amplitude) {
 					gRTDB->has_bearing_issues = 1;
-					printf("Max Amplitude: %f", gRTDB->highest_amplitude);
-					printf("Found freq %f - amp %f: bearing issue\n", fk[i], Ak[i]);
+					//printf("Max Amplitude: %f", gRTDB->highest_amplitude);
+					//printf("Found freq %f - amp %f: bearing issue\n", fk[i], Ak[i]);
 					break;
 				}
 			}
@@ -377,8 +379,8 @@ void start_issues_task(){
 	// For RT scheduler
 	int policy, prio=DEFAULT_PRIO;
 
-	int priority = 50;
-	int periodicity = 500;
+	int priority = 10;
+	int periodicity = 2000;
 
 	pthread_attr_init(&attr);
 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
@@ -446,7 +448,7 @@ void *rtdb_task_code(void *arg)
 		ta_ant = ta; // Update ta_ant
 
 		if(update) {		  
-			printf("Issues Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
+			printf("RTDB Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
 			update = 0;
 		}
 
@@ -470,7 +472,7 @@ void start_rtdb_task(){
 	// For RT scheduler
 	int policy, prio=DEFAULT_PRIO;
 
-	int priority = 30;
+	int priority = 50;
 	int periodicity = 500;
 
 	pthread_attr_init(&attr);

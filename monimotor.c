@@ -4,6 +4,8 @@
 
 void audioRecordingCallback(void *userdata, Uint8 *stream, int len)
 {
+	printf("\nEntrei callback\n\n");
+	fflush(stdout);
 
 	if (clk_callback == 0){
 		clk_callback = clock();
@@ -256,7 +258,7 @@ int main(int argc, char *argv[])
 	start_issues_task();
 	start_rtdb_task();
 
-while(1){
+
 #define RECORD
 #ifdef RECORD
 
@@ -273,12 +275,12 @@ while(1){
 	/* Devices must be unpaused to allow callback processing */
 	/* Wait until recording buffer full */
 	SDL_PauseAudioDevice(recordingDeviceId, 0); /* Args are SDL device id and pause_on */
-
-	sleep(5);
+	
 	gRTDB->has_bearing_issues = 0;
 	gRTDB->highest_amplitude = 0;
 	gRTDB->motor_speed = 0;
-	SDL_PauseAudioDevice(recordingDeviceId, 0); /* Args are SDL device id and pause_on */
+	while(1);
+	SDL_PauseAudioDevice(recordingDeviceId, 1); /* Args are SDL device id and pause_on */
 
 	/* *****************************************************************
 	 * Recorded data obtained. Now process it and play it back
@@ -286,16 +288,6 @@ while(1){
 
 #endif
 
-#define GENSINE
-#ifdef GENSINE
-	uint16_t freq;
-	uint16_t amp;
-		freq = (rand() % 501) + 500; // 500 to 1000
-		amp = (rand() % 10001) + 20000;
-		genSineU16(freq, 5000, amp, choose_buffer); /* freq, durationMS, amp, buffer */
-
-#endif
-}
 
 	SDL_Quit();
 }
