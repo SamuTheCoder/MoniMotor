@@ -14,7 +14,10 @@ void* preprocessing_task_code(void* arg){
 	
 	usleep(1000000);
 
-	tp.tv_nsec = 125 * 1000 * 1000;
+	thread_data_t * args = (thread_data_t*) arg;
+
+
+	tp.tv_nsec = args->periodicity * 1000 * 1000;
 	tp.tv_sec = 0;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	ts = TsAdd(ts, tp);
@@ -52,7 +55,7 @@ void* preprocessing_task_code(void* arg){
 
 		/* Print maximum/minimum mount of time between successive executions */
 		if(update) {		  
-			//printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
+			printf("Preprocessing Task: time between successive executions (approximation, us): min: %10.3f / max: %10.3f \n\r", (float)min_iat/1000, (float)max_iat/1000);
 			update = 0;
 		}
 
@@ -64,25 +67,32 @@ void* preprocessing_task_code(void* arg){
 		//if choose_buffer is 1, write to 2, if its 2 write to 1
 		if(choose_buffer == gRecordingBuffer1){
 			filterLP(1000, SAMP_FREQ, gRecordingBuffer2, gBufferBytePosition2/sizeof(uint16_t));
-
+			//printSamplesU8(gRecordingBuffer2, 8192);
 			if(cab_buffer_t_write(cab_buffer, gRecordingBuffer2)){
                 printf("Preprocessing Task: Couldn't write to CAB\n");
                 continue;
             }
+			printf("Preprocessing Task wrote from gRecordingBuffer2\n");
+			//printSamplesU16(gRecordingBuffer2, gBufferBytePosition2/sizeof(uint16_t));
+			//printf("\n");
 		}
 		else{
 			filterLP(1000, SAMP_FREQ, gRecordingBuffer1, gBufferBytePosition/sizeof(uint16_t));
+			//printSamplesU8(gRecordingBuffer1, 8192);
 			if(cab_buffer_t_write(cab_buffer, gRecordingBuffer1)){
                 printf("Preprocessing Task: Couldn't write to CAB\n");
                 continue;
             }
+			printf("Preprocessing Task wrote from gRecordingBuffer1\n");
+			//printSamplesU16(gRecordingBuffer1, gBufferBytePosition/sizeof(uint16_t));
+			//printf("\n");
 		}
 
 		UNLOCK(&choose_buffer_mutex);
 	}
 }
 
-void start_preprocessing_task(){
+void start_preprocessing_task(int priority, int periodicity){
 	//Start real time threads
 	// For thread with RT attributes
 	pthread_t threadid;
@@ -93,19 +103,21 @@ void start_preprocessing_task(){
 	// For RT scheduler
 	int policy, prio=DEFAULT_PRIO;
 
-	int priority = 99;
-	int periodicity = 125;
 
 	pthread_attr_init(&attr);
 	pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
 	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
 	parm.sched_priority = priority;
 	pthread_attr_setschedparam(&attr, &parm);
+
+	thread_data_t* thread_data = (thread_data_t*) malloc(sizeof(thread_data_t));
+	thread_data->cab_buffer = NULL;
+	thread_data->periodicity = periodicity;
 	
 	/* Lock memory */
 	mlockall(MCL_CURRENT | MCL_FUTURE);
 
-	int err=pthread_create(&threadid, &attr, preprocessing_task_code, NULL);
+	int err=pthread_create(&threadid, &attr, preprocessing_task_code, (void*) thread_data);
 	if(err != 0)
 		printf("\n\r Error creating Preprocessing Thread [%s]", strerror(err));
 

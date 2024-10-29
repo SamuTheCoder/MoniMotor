@@ -121,17 +121,11 @@ int gRecordingDeviceCount = 0;
 /* ***********************************************
 * Arguments Structure
 * ***********************************************/
-// Thread structure
-typedef struct
-{
-    pthread_t tid; // thread identifier
-} thread_speed_data_t;
 
-// Thread structure
-typedef struct
-{
-    pthread_t tid; // thread identifier
-} thread_issues_data_t;
+typedef struct {
+	int periodicity;
+	cab_buffer_t *cab_buffer;
+} thread_data_t;
 
 // Preprocessing thread code
 void *preprocessing_task_code(void *arg);
@@ -173,7 +167,7 @@ void genSineU16(uint16_t freq, uint32_t durationMS, uint16_t amp, uint8_t *buffe
 /**
  * Function to initiate real time preprocessing task
  */
-void start_preprocessing_task();
+void start_preprocessing_task(int priority, int periodicty);
 
 /**
  * Function to initiate real time speed task

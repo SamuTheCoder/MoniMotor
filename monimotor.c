@@ -15,15 +15,21 @@ void audioRecordingCallback(void *userdata, Uint8 *stream, int len)
 
 	/* Copy bytes acquired from audio stream */
 	if (choose_buffer == gRecordingBuffer1){
+		printf("Callback: Copying to Buffer 1\n");
 		gBufferBytePosition = 0;
 		memcpy(&choose_buffer[gBufferBytePosition], stream, len);
 		gBufferBytePosition += len;
+		//printSamplesU16(choose_buffer, len);
+		//printf("\n");
 
 	}
 	else{
+		printf("Callback: Copying to Buffer 2\n");
 		gBufferBytePosition2 = 0;
 		memcpy(&choose_buffer[gBufferBytePosition2], stream, len);
 		gBufferBytePosition2 += len;
+		//printSamplesU16(choose_buffer, len);
+		//printf("\n");
 	}
 
 	LOCK(&choose_buffer_mutex);
@@ -245,10 +251,11 @@ int main(int argc, char *argv[])
 	}
 
 	/** Start Tasks */
-	start_preprocessing_task();
+	start_preprocessing_task(atoi(argv[1]), atoi(argv[2]));
 	start_speed_task();
 	start_issues_task();
 	start_rtdb_task();
+
 while(1){
 #define RECORD
 #ifdef RECORD
@@ -285,7 +292,7 @@ while(1){
 	uint16_t amp;
 		freq = (rand() % 501) + 500; // 500 to 1000
 		amp = (rand() % 10001) + 20000;
-		genSineU16(freq, 1000, amp, choose_buffer); /* freq, durationMS, amp, buffer */
+		genSineU16(freq, 5000, amp, choose_buffer); /* freq, durationMS, amp, buffer */
 
 #endif
 }
